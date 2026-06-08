@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth/session";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 
 export default async function Home() {
   const user = await getCurrentUser();
@@ -20,6 +21,12 @@ export default async function Home() {
               <p className="text-zinc-600 dark:text-zinc-400">
                 You are logged in.
               </p>
+              {user.role && (
+                <p className="text-sm text-zinc-500 dark:text-zinc-500">
+                  Role: {user.role}
+                </p>
+              )}
+              <SignOutButton />
             </div>
           ) : (
             <div className="flex flex-col items-center gap-6">
