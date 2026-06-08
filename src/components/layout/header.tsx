@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import { Menu } from 'lucide-react';
 import { getCurrentUser } from '@/lib/auth/session';
 import { Button } from '@/components/ui/button';
+import { MobileMenu } from './mobile-menu';
 
 export async function Header() {
   const user = await getCurrentUser();
@@ -57,15 +57,8 @@ export async function Header() {
             </>
           )}
 
-          {/* Mobile Menu Button - Placeholder for Task 9 */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
-            aria-label="Open menu"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
+          {/* Mobile Menu */}
+          <MobileMenu user={user} />
         </div>
       </nav>
     </header>
