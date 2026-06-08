@@ -26,7 +26,7 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   accounts Account[]
-  // wallet        Wallet?  // Will be added in Task 3
+  wallet   Wallet?
 
   @@index([email])
 }
@@ -57,4 +57,59 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+enum Currency {
+  USD
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  ORDER_PAYMENT
+  REFUND
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  STRIPE
+  PAYPAL
+}
+
+model Wallet {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  balance   Decimal  @default(0.00) @db.Decimal(10, 2)
+  currency  Currency @default(USD)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@index([userId])
+}
+
+model Transaction {
+  id              String            @id @default(uuid())
+  walletId        String
+  type            TransactionType
+  amount          Decimal           @db.Decimal(10, 2)
+  status          TransactionStatus @default(PENDING)
+  paymentMethod   PaymentMethod?
+  paymentIntentId String?
+  metadata        Json?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId, createdAt(sort: Desc)])
+  @@index([paymentIntentId])
 }
