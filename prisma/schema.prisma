@@ -14,6 +14,13 @@ enum Role {
   ADMIN
 }
 
+enum NotificationType {
+  ORDER_UPDATE
+  PAYMENT_SUCCESS
+  PAYMENT_FAILED
+  SYSTEM_ALERT
+}
+
 model User {
   id            String    @id @default(uuid())
   email         String    @unique
@@ -25,9 +32,10 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts Account[]
-  wallet   Wallet?
-  orders   Order[]
+  accounts      Account[]
+  wallet        Wallet?
+  orders        Order[]
+  notifications Notification[]
 
   @@index([email])
 }
@@ -200,5 +208,37 @@ model Order {
 
   @@index([userId, status])
   @@index([status, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  metadata  Json?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([createdAt(sort: Desc)])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String
+  changes   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([entity, entityId])
   @@index([createdAt(sort: Desc)])
 }
