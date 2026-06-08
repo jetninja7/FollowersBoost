@@ -27,6 +27,7 @@ model User {
 
   accounts Account[]
   wallet   Wallet?
+  orders   Order[]
 
   @@index([email])
 }
@@ -112,4 +113,92 @@ model Transaction {
 
   @@index([walletId, createdAt(sort: Desc)])
   @@index([paymentIntentId])
+}
+
+model Platform {
+  id       String  @id @default(uuid())
+  name     String  @unique
+  slug     String  @unique
+  icon     String
+  isActive Boolean @default(true)
+  order    Int     @default(0)
+
+  categories ServiceCategory[]
+
+  @@index([slug])
+  @@index([isActive, order])
+}
+
+model ServiceCategory {
+  id          String  @id @default(uuid())
+  platformId  String
+  name        String
+  slug        String  @unique
+  description String?
+  isActive    Boolean @default(true)
+
+  platform Platform  @relation(fields: [platformId], references: [id], onDelete: Cascade)
+  services Service[]
+
+  @@index([platformId, isActive])
+  @@index([slug])
+}
+
+model Service {
+  id                    String   @id @default(uuid())
+  categoryId            String
+  name                  String
+  slug                  String   @unique
+  description           String
+  price                 Decimal  @db.Decimal(10, 2)
+  minQuantity           Int      @default(100)
+  maxQuantity           Int      @default(100000)
+  estimatedDeliveryTime String
+  isActive              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  category ServiceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([categoryId, isActive])
+  @@index([slug])
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  REFUNDED
+  FAILED
+}
+
+enum FulfillmentProvider {
+  MANUAL
+  API
+}
+
+model Order {
+  id                    String               @id @default(uuid())
+  userId                String
+  serviceId             String
+  quantity              Int
+  totalPrice            Decimal              @db.Decimal(10, 2)
+  status                OrderStatus          @default(PENDING)
+  targetUrl             String
+  startCount            Int?
+  currentCount          Int?
+  fulfillmentProvider   FulfillmentProvider?
+  fulfillmentProviderId String?
+  notes                 String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  completedAt           DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
 }
