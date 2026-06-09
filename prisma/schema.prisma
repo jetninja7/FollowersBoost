@@ -201,15 +201,35 @@ model Order {
   fulfillmentProvider   FulfillmentProvider?
   fulfillmentProviderId String?
   notes                 String?
+  adminNotes            String?
+  failureReason         String?
+  startedAt             DateTime?
+  lastProgressUpdate    DateTime?
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
   completedAt           DateTime?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderLogs OrderLog[]
 
   @@index([userId, status])
   @@index([status, createdAt(sort: Desc)])
   @@index([createdAt(sort: Desc)])
+}
+
+model OrderLog {
+  id          String   @id @default(uuid())
+  orderId     String
+  action      String
+  oldValue    String?
+  newValue    String?
+  performedBy String?
+  note        String?
+  createdAt   DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt(sort: Desc)])
 }
 
 model Notification {
