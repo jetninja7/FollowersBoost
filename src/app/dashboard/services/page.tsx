@@ -1,6 +1,5 @@
 import { ServicesGrid } from '@/components/landing/services-grid';
-import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { ServiceSearch } from '@/components/dashboard/service-search';
 
 export default async function ServicesPage() {
   const { prisma } = await import('@/lib/db/prisma');
@@ -29,14 +28,7 @@ export default async function ServicesPage() {
       </div>
 
       {/* Search Bar */}
-      <div className="relative max-w-2xl">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-        <Input
-          type="search"
-          placeholder="Search services..."
-          className="pl-10"
-        />
-      </div>
+      <ServiceSearch />
 
       {/* Platform Grid - Reuse from landing page */}
       <div>
