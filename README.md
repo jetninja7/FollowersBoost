@@ -117,9 +117,34 @@ Landing page and public pages:
 - Landing: `hero.tsx`, `services-grid.tsx`, `pricing.tsx`, `testimonials.tsx`, `faq.tsx`
 - UI: `accordion.tsx`, `card.tsx`, `separator.tsx`, `sheet.tsx` (from shadcn/ui)
 
+### Phase 3A Complete ✅
+
+Dashboard and service browsing:
+- ✅ Dashboard layout with sidebar navigation
+- ✅ Dashboard home with wallet balance, order stats, and quick actions
+- ✅ Service marketplace with platform grid
+- ✅ Platform detail pages with category tabs
+- ✅ Service detail pages with pricing and descriptions
+- ✅ Global search with autocomplete and grouped results
+- ✅ Loading states with skeleton screens
+- ✅ Protected routes (authentication required)
+
+**Components Created:**
+- Layout: `dashboard-layout.tsx`, `dashboard-sidebar.tsx`
+- Dashboard: `stat-card.tsx`, `service-card.tsx`, `empty-state.tsx`, `service-search.tsx`
+- Pages: Dashboard home, services marketplace, platform pages, service detail
+
+**API Endpoints:**
+- `GET /api/dashboard/stats` - Dashboard statistics
+- `GET /api/dashboard/recent-activity` - Recent orders
+- `GET /api/platforms` - Platform list
+- `GET /api/platforms/:slug` - Platform details
+- `GET /api/services/:slug` - Service details
+- `GET /api/services/search` - Search services
+
 ### Next Phases
 
-- **Phase 3**: User dashboard and service browsing
+- **Phase 3B**: Order creation and checkout flow
 - **Phase 4**: Order and wallet system
 - **Phase 5**: Payment integration (Stripe & PayPal)
 - **Phase 6**: Order fulfillment system
