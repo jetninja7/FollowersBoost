@@ -116,6 +116,7 @@ export default function LoginPage() {
           </Button>
         </form>
 
+        {/* Google OAuth temporarily disabled - uncomment when credentials are configured
         <div className="relative my-4">
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t" />
@@ -152,6 +153,7 @@ export default function LoginPage() {
           </svg>
           Sign in with Google
         </Button>
+        */}
       </CardContent>
       <CardFooter>
         <p className="text-sm text-gray-600 text-center w-full">

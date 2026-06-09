@@ -17,10 +17,12 @@ export const authConfig: NextAuthConfig = {
     error: '/login',
   },
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
+    // Google OAuth - Disabled until credentials are configured
+    // Uncomment and add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to enable
+    // GoogleProvider({
+    //   clientId: process.env.GOOGLE_CLIENT_ID!,
+    //   clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    // }),
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
