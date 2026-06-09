@@ -469,6 +469,25 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 
 ---
 
+## Post-Implementation Fixes
+
+### Build Error Fix (2026-06-09)
+
+**Issue:** Build failing with "STRIPE_SECRET_KEY is not defined" error during static generation.
+
+**Root Cause:** Stripe SDK was being initialized at module load time (during build), but environment variable isn't available during build phase.
+
+**Solution:** Converted to lazy-loading singleton pattern:
+- Stripe initializes only when first used (at runtime)
+- Uses Proxy for transparent API compatibility
+- Maintains all existing functionality
+
+**Commit:** `3028c49` - fix: lazy-load Stripe SDK to prevent build-time errors
+
+**Result:** Build now completes successfully without requiring Stripe keys at build time. ✅
+
+---
+
 **Phase 3B: Orders & Wallet - COMPLETE!** 🎉
 
 All features implemented, tested, and ready for production deployment.
@@ -476,4 +495,5 @@ All features implemented, tested, and ready for production deployment.
 **Session Duration:** ~3 hours  
 **Tasks Completed:** 11 tasks (10-20)  
 **Total Implementation:** 20 tasks (100%)  
-**Quality:** Production-ready code with full TypeScript coverage
+**Quality:** Production-ready code with full TypeScript coverage  
+**Build Status:** ✅ Passing
