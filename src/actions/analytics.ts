@@ -34,78 +34,101 @@ export async function getChartData(range: DateRange = '30d'): Promise<TimeSeries
   await requireAdmin();
 
   const startDate = getStartDate(range);
+  const endDate = new Date();
 
-  // Query 1: Revenue by date (completed orders only)
-  const revenueData = await prisma.$queryRaw<Array<{ date: Date; revenue: any }>>`
-    SELECT
-      DATE("completedAt") as date,
-      SUM("totalPrice") as revenue
-    FROM "Order"
-    WHERE
-      status = ${OrderStatus.COMPLETED}
-      AND "completedAt" >= ${startDate}
-    GROUP BY DATE("completedAt")
-    ORDER BY date ASC
-  `;
+  try {
+    // Query 1: Revenue by date (completed orders only)
+    const revenueData = await prisma.$queryRaw<Array<{ date: Date; revenue: any }>>`
+      SELECT
+        DATE("completedAt") as date,
+        SUM("totalPrice") as revenue
+      FROM "Order"
+      WHERE
+        status = ${OrderStatus.COMPLETED}
+        AND "completedAt" IS NOT NULL
+        AND "completedAt" >= ${startDate}
+      GROUP BY DATE("completedAt")
+      ORDER BY date ASC
+    `;
 
-  // Query 2: Order count by date (all orders)
-  const orderData = await prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
-    SELECT
-      DATE("createdAt") as date,
-      COUNT(*) as count
-    FROM "Order"
-    WHERE "createdAt" >= ${startDate}
-    GROUP BY DATE("createdAt")
-    ORDER BY date ASC
-  `;
+    // Query 2: Order count by date (all orders)
+    const orderData = await prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
+      SELECT
+        DATE("createdAt") as date,
+        COUNT(*) as count
+      FROM "Order"
+      WHERE "createdAt" >= ${startDate}
+      GROUP BY DATE("createdAt")
+      ORDER BY date ASC
+    `;
 
-  // Query 3: Daily user signups
-  const userData = await prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
-    SELECT
-      DATE("createdAt") as date,
-      COUNT(*) as count
-    FROM "User"
-    WHERE "createdAt" >= ${startDate}
-    GROUP BY DATE("createdAt")
-    ORDER BY date ASC
-  `;
+    // Query 3: Baseline user count (users created before startDate)
+    const baselineUsers = await prisma.user.count({
+      where: {
+        createdAt: {
+          lt: startDate,
+        },
+      },
+    });
 
-  // Merge data by date
-  const dateMap = new Map<string, TimeSeriesData>();
+    // Query 4: Daily user signups within the range
+    const userData = await prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
+      SELECT
+        DATE("createdAt") as date,
+        COUNT(*) as count
+      FROM "User"
+      WHERE "createdAt" >= ${startDate}
+      GROUP BY DATE("createdAt")
+      ORDER BY date ASC
+    `;
 
-  // Add revenue data
-  revenueData.forEach(row => {
-    const dateStr = row.date.toISOString().split('T')[0];
-    if (!dateMap.has(dateStr)) {
-      dateMap.set(dateStr, { date: dateStr, revenue: 0, orderCount: 0, userCount: 0 });
+    // Generate all dates in the range to fill gaps
+    const allDates: string[] = [];
+    const currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+      allDates.push(currentDate.toISOString().split('T')[0]);
+      currentDate.setDate(currentDate.getDate() + 1);
     }
-    dateMap.get(dateStr)!.revenue = Number(row.revenue) || 0;
-  });
 
-  // Add order data
-  orderData.forEach(row => {
-    const dateStr = row.date.toISOString().split('T')[0];
-    if (!dateMap.has(dateStr)) {
-      dateMap.set(dateStr, { date: dateStr, revenue: 0, orderCount: 0, userCount: 0 });
-    }
-    dateMap.get(dateStr)!.orderCount = Number(row.count);
-  });
+    // Initialize dateMap with all dates
+    const dateMap = new Map<string, TimeSeriesData>();
+    allDates.forEach(dateStr => {
+      dateMap.set(dateStr, { date: dateStr, revenue: 0, orderCount: 0, userCount: baselineUsers });
+    });
 
-  // Add user data (cumulative)
-  let cumulativeUsers = 0;
-  userData.forEach(row => {
-    const dateStr = row.date.toISOString().split('T')[0];
-    cumulativeUsers += Number(row.count);
-    if (!dateMap.has(dateStr)) {
-      dateMap.set(dateStr, { date: dateStr, revenue: 0, orderCount: 0, userCount: 0 });
-    }
-    dateMap.get(dateStr)!.userCount = cumulativeUsers;
-  });
+    // Add revenue data
+    revenueData.forEach(row => {
+      const dateStr = row.date.toISOString().split('T')[0];
+      if (dateMap.has(dateStr)) {
+        dateMap.get(dateStr)!.revenue = Number(row.revenue) || 0;
+      }
+    });
 
-  // Convert to array and sort
-  const result = Array.from(dateMap.values()).sort((a, b) =>
-    a.date.localeCompare(b.date)
-  );
+    // Add order data
+    orderData.forEach(row => {
+      const dateStr = row.date.toISOString().split('T')[0];
+      if (dateMap.has(dateStr)) {
+        dateMap.get(dateStr)!.orderCount = Number(row.count);
+      }
+    });
 
-  return result;
+    // Add user data (cumulative from baseline)
+    let cumulativeUsers = baselineUsers;
+    allDates.forEach(dateStr => {
+      // Find if there's signup data for this date
+      const signupData = userData.find(row => row.date.toISOString().split('T')[0] === dateStr);
+      if (signupData) {
+        cumulativeUsers += Number(signupData.count);
+      }
+      dateMap.get(dateStr)!.userCount = cumulativeUsers;
+    });
+
+    // Convert to array (already sorted by allDates order)
+    const result = Array.from(dateMap.values());
+
+    return result;
+  } catch (error) {
+    console.error('Error fetching analytics data:', error);
+    throw new Error('Failed to fetch analytics data');
+  }
 }
