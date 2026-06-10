@@ -49,6 +49,7 @@ export function AnalyticsCharts({
       setData(newData);
       setRange(newRange);
     } catch (error) {
+      console.error('Failed to load chart data:', error);
       toast.error('Failed to load chart data');
     } finally {
       setLoading(false);

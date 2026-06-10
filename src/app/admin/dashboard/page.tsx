@@ -2,6 +2,8 @@ import { requireAdmin } from '@/lib/auth/require-admin';
 import { prisma } from '@/lib/db/prisma';
 import { AnalyticsCards } from '@/components/admin/analytics-cards';
 import { OrderStatus } from '@prisma/client';
+import { getChartData } from '@/actions/analytics';
+import { AnalyticsCharts } from '@/components/admin/analytics-charts';
 
 async function getAnalyticsData() {
   // Date calculations
@@ -120,12 +122,24 @@ async function getAnalyticsData() {
 
 export default async function AdminDashboardPage() {
   await requireAdmin();
-  const data = await getAnalyticsData();
+
+  const [cardData, chartData] = await Promise.all([
+    getAnalyticsData(),
+    getChartData('30d'),
+  ]);
 
   return (
     <div>
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Dashboard</h1>
-      <AnalyticsCards {...data} />
+
+      {/* Existing cards - unchanged */}
+      <AnalyticsCards {...cardData} />
+
+      {/* NEW: Charts section */}
+      <div className="mt-8">
+        <h2 className="text-2xl font-semibold text-gray-900 mb-6">Trends</h2>
+        <AnalyticsCharts initialData={chartData} initialRange="30d" />
+      </div>
     </div>
   );
 }
