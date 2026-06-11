@@ -4,5 +4,11 @@
       "path": "/api/cron/process-orders",
       "schedule": "*/5 * * * *"
     }
-  ]
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "regions": ["iad1"],
+  "framework": "nextjs",
+  "buildCommand": "prisma generate && next build"
 }
