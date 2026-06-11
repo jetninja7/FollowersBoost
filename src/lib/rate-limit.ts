@@ -1,10 +1,22 @@
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 
-// Initialize Redis client from environment variables
-const redis = Redis.fromEnv();
+// Initialize Redis client from environment variables (optional for preview)
+let redis: Redis | null = null;
+try {
+  redis = Redis.fromEnv();
+} catch (error) {
+  console.warn('Rate limiting disabled: Redis connection failed', error);
+}
 
-export const ratelimit = {
+// Mock rate limiter for when Redis unavailable
+const mockLimiter = {
+  async limit() {
+    return { success: true, remaining: 999 };
+  },
+};
+
+export const ratelimit = redis ? {
   // Auth endpoints: 5 attempts per 15 minutes per IP
   auth: new Ratelimit({
     redis,
@@ -36,4 +48,9 @@ export const ratelimit = {
     prefix: 'ratelimit:public',
     analytics: true,
   }),
+} : {
+  auth: mockLimiter,
+  api: mockLimiter,
+  admin: mockLimiter,
+  public: mockLimiter,
 };
