@@ -17,6 +17,7 @@ export async function middleware(req: NextRequest) {
         },
       });
     }
+    return NextResponse.next();
   }
 
   // Rate limit admin API
@@ -30,6 +31,7 @@ export async function middleware(req: NextRequest) {
         },
       });
     }
+    return NextResponse.next();
   }
 
   // Rate limit general API routes
