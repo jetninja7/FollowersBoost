@@ -1,10 +1,4 @@
 {
-  "crons": [
-    {
-      "path": "/api/cron/process-orders",
-      "schedule": "*/5 * * * *"
-    }
-  ],
   "env": {
     "NODE_ENV": "production"
   },
