@@ -20,9 +20,9 @@ const serverSchema = z.object({
   // Monitoring
   SENTRY_DSN: z.string().url().optional(),
 
-  // Rate Limiting
-  UPSTASH_REDIS_REST_URL: z.string().url(),
-  UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
+  // Rate Limiting (optional for preview)
+  UPSTASH_REDIS_REST_URL: z.string().url().optional(),
+  UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
 
   // System
   NODE_ENV: z.enum(['development', 'production', 'test']),
