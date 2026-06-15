@@ -30,7 +30,10 @@ export const authConfig: NextAuthConfig = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
+        console.log('[AUTH] Authorize called with email:', credentials?.email);
+
         if (!credentials?.email || !credentials?.password) {
+          console.log('[AUTH] Missing credentials');
           return null;
         }
 
@@ -38,7 +41,10 @@ export const authConfig: NextAuthConfig = {
           where: { email: credentials.email as string },
         });
 
+        console.log('[AUTH] User found:', !!user, 'Has password:', !!user?.password);
+
         if (!user || !user.password) {
+          console.log('[AUTH] User not found or no password');
           return null;
         }
 
@@ -47,10 +53,14 @@ export const authConfig: NextAuthConfig = {
           user.password
         );
 
+        console.log('[AUTH] Password valid:', isPasswordValid);
+
         if (!isPasswordValid) {
+          console.log('[AUTH] Password verification failed');
           return null;
         }
 
+        console.log('[AUTH] Login successful for user:', user.id);
         return {
           id: user.id,
           email: user.email,
