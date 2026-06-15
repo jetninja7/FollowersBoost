@@ -34,10 +34,10 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
-    if (session?.user) {
+    if (session?.user?.id && session.user.email) {
       const userProfile: UserProfile = {
         id: session.user.id,
-        email: session.user.email || '',
+        email: session.user.email,
         name: session.user.name || '',
         role: session.user.role,
         emailVerified: null,
