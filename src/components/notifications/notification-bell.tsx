@@ -29,11 +29,17 @@ export function NotificationBell() {
 
   const fetchUnreadCount = async () => {
     try {
-      const response = await fetch('/api/notifications/unread-count');
+      const response = await fetch('/api/notifications/unread-count', {
+        signal: AbortSignal.timeout(5000) // 5 second timeout
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch');
+      }
       const data = await response.json();
-      setUnreadCount(data.count);
+      setUnreadCount(data.count || 0);
     } catch (error) {
       console.error('Error fetching unread count:', error);
+      setUnreadCount(0); // Fail silently with 0 count
     }
   };
 
