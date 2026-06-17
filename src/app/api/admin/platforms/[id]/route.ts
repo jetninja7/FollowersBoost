@@ -13,6 +13,9 @@ export async function GET(
     const platform = await prisma.platform.findUnique({
       where: { id },
       include: {
+        _count: {
+          select: { categories: true },
+        },
         categories: {
           include: {
             _count: {
