@@ -81,7 +81,7 @@ export async function POST(
 
       const transaction = await tx.transaction.create({
         data: {
-          userId: user.id,
+          walletId: user.wallet!.id,
           type: operation === 'ADD' ? 'DEPOSIT' : 'WITHDRAWAL',
           amount,
           status: 'COMPLETED',

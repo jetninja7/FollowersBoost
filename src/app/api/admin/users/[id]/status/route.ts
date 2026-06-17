@@ -34,14 +34,11 @@ export async function PATCH(
 
     return NextResponse.json({
       data: {
-        success: true,
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          isActive: user.isActive,
-          updatedAt: user.updatedAt.toISOString(),
-        },
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        isActive: user.isActive,
+        updatedAt: user.updatedAt.toISOString(),
       },
     });
   } catch (error) {
