@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
-import { stripe } from '@/lib/stripe';
+import { stripe, isStripeEnabled } from '@/lib/stripe';
+import { getOrCreateStripeCustomer } from '@/lib/stripe-customer';
 import { z } from 'zod';
 
 const addFundsSchema = z.object({
@@ -24,10 +25,17 @@ export async function POST(request: Request) {
 
     const { amount, paymentMethod } = validation.data;
 
-    // Only Stripe implemented for Phase 3B
-    if (paymentMethod !== 'stripe') {
+    // Validate payment method is configured
+    if (paymentMethod === 'stripe' && !isStripeEnabled()) {
       return NextResponse.json(
-        { error: { message: 'Only Stripe is supported currently' } },
+        { error: { message: 'Stripe is not configured' } },
+        { status: 503 }
+      );
+    }
+
+    if (paymentMethod === 'paypal') {
+      return NextResponse.json(
+        { error: { message: 'PayPal uses a different flow. Use /api/wallet/paypal/create-order' } },
         { status: 400 }
       );
     }
@@ -44,10 +52,18 @@ export async function POST(request: Request) {
       );
     }
 
+    // Get or create Stripe customer
+    const customerId = await getOrCreateStripeCustomer(
+      session.user.id!,
+      session.user.email!
+    );
+
     // Create Stripe PaymentIntent
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100), // Convert to cents
       currency: 'usd',
+      customer: customerId,
+      setup_future_usage: 'off_session',
       automatic_payment_methods: {
         enabled: true,
       },

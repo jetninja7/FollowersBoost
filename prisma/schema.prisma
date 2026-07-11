@@ -23,15 +23,16 @@ enum NotificationType {
 }
 
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  password      String? // Nullable for OAuth-only users
-  name          String
-  role          Role      @default(USER)
-  emailVerified DateTime?
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id               String    @id @default(uuid())
+  email            String    @unique
+  password         String? // Nullable for OAuth-only users
+  name             String
+  role             Role      @default(USER)
+  emailVerified    DateTime?
+  isActive         Boolean   @default(true)
+  stripeCustomerId String?   @unique
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   accounts      Account[]
   wallet        Wallet?
@@ -114,6 +115,10 @@ model Transaction {
   status          TransactionStatus @default(PENDING)
   paymentMethod   PaymentMethod?
   paymentIntentId String?
+  // Idempotency: dedupe Stripe webhook events that re-deliver.
+  stripeEventId   String?           @unique
+  // Set when status = FAILED. Captures Stripe's decline message for support.
+  failureMessage  String?
   metadata        Json?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt

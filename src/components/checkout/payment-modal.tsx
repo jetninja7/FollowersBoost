@@ -8,6 +8,11 @@ import {
   useStripe,
   useElements,
 } from '@stripe/react-stripe-js';
+import {
+  PayPalScriptProvider,
+  PayPalButtons,
+  FUNDING,
+} from '@paypal/react-paypal-js';
 import { Dialog as DialogPrimitive } from '@base-ui/react/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,8 +20,11 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { CARD_ELEMENT_OPTIONS } from '@/lib/stripe-ui';
 import { XIcon, Loader2Icon } from 'lucide-react';
 import { toast } from 'sonner';
+import { SavedCards } from '@/components/checkout/saved-cards';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // Initialize Stripe outside of component to avoid recreating on every render
 const stripePromise = loadStripe(
@@ -29,23 +37,6 @@ interface PaymentModalProps {
   onSuccess: (amount: number) => void;
   minimumAmount?: number;
 }
-
-// Stripe CardElement styling
-const CARD_ELEMENT_OPTIONS = {
-  style: {
-    base: {
-      fontSize: '14px',
-      color: 'hsl(var(--foreground))',
-      '::placeholder': {
-        color: 'hsl(var(--muted-foreground))',
-      },
-      fontFamily: 'system-ui, sans-serif',
-    },
-    invalid: {
-      color: 'hsl(var(--destructive))',
-    },
-  },
-};
 
 /**
  * Inner payment form component that uses Stripe hooks
@@ -67,14 +58,17 @@ function PaymentForm({
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cardComplete, setCardComplete] = useState(false);
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [saveCard, setSaveCard] = useState(false);
 
+  // Can submit if using saved card OR if new card is complete
   const canSubmit =
     stripe &&
-    elements &&
-    cardholderName.trim() !== '' &&
-    cardComplete &&
     !isProcessing &&
-    amount >= 1;
+    amount >= 1 &&
+    (selectedCardId
+      ? true // Using saved card
+      : elements && cardholderName.trim() !== '' && cardComplete); // New card
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -107,19 +101,30 @@ function PaymentForm({
       }
 
       // Step 2: Confirm card payment with Stripe
-      const cardElement = elements.getElement(CardElement);
-      if (!cardElement) {
-        throw new Error('Card element not found');
-      }
+      let result;
 
-      const result = await stripe.confirmCardPayment(data.clientSecret, {
-        payment_method: {
-          card: cardElement,
-          billing_details: {
-            name: cardholderName,
+      if (selectedCardId) {
+        // Use saved payment method
+        result = await stripe.confirmCardPayment(data.clientSecret, {
+          payment_method: selectedCardId,
+        });
+      } else {
+        // Use new card
+        const cardElement = elements!.getElement(CardElement);
+        if (!cardElement) {
+          throw new Error('Card element not found');
+        }
+
+        result = await stripe.confirmCardPayment(data.clientSecret, {
+          payment_method: {
+            card: cardElement,
+            billing_details: {
+              name: cardholderName,
+            },
           },
-        },
-      });
+          setup_future_usage: saveCard ? 'off_session' : undefined,
+        });
+      }
 
       if (result.error) {
         throw new Error(result.error.message || 'Payment failed');
@@ -146,45 +151,77 @@ function PaymentForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Cardholder Name */}
-      <div className="space-y-2">
-        <Label htmlFor="cardholder-name">Cardholder Name</Label>
-        <Input
-          id="cardholder-name"
-          type="text"
-          placeholder="John Doe"
-          value={cardholderName}
-          onChange={(e) => setCardholderName(e.target.value)}
-          disabled={isProcessing}
-          required
-        />
-      </div>
+      {/* Saved Cards */}
+      <SavedCards
+        onSelectCard={(cardId) => {
+          setSelectedCardId(cardId || null);
+          if (cardId) {
+            setError(null);
+          }
+        }}
+        selectedCardId={selectedCardId}
+      />
 
-      {/* Card Element */}
-      <div className="space-y-2">
-        <Label>Card Information</Label>
-        <div
-          className={cn(
-            'rounded-lg border border-input bg-transparent px-2.5 py-3 transition-colors',
-            'focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50',
-            isProcessing && 'opacity-50 pointer-events-none',
-            error && 'border-destructive'
-          )}
-        >
-          <CardElement
-            options={CARD_ELEMENT_OPTIONS}
-            onChange={(e) => {
-              setCardComplete(e.complete);
-              if (e.error) {
-                setError(e.error.message);
-              } else {
-                setError(null);
-              }
-            }}
-          />
-        </div>
-        {error && <p className="text-sm text-destructive">{error}</p>}
-      </div>
+      {/* New Card Section - Show only if no saved card selected */}
+      {!selectedCardId && (
+        <>
+          {/* Cardholder Name */}
+          <div className="space-y-2">
+            <Label htmlFor="cardholder-name">Cardholder Name</Label>
+            <Input
+              id="cardholder-name"
+              type="text"
+              placeholder="John Doe"
+              value={cardholderName}
+              onChange={(e) => setCardholderName(e.target.value)}
+              disabled={isProcessing}
+              required
+            />
+          </div>
+
+          {/* Card Element */}
+          <div className="space-y-2">
+            <Label>Card Information</Label>
+            <div
+              className={cn(
+                'rounded-lg border border-input bg-transparent px-2.5 py-3 transition-colors',
+                'focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50',
+                isProcessing && 'opacity-50 pointer-events-none',
+                error && 'border-destructive'
+              )}
+            >
+              <CardElement
+                options={CARD_ELEMENT_OPTIONS}
+                onChange={(e) => {
+                  setCardComplete(e.complete);
+                  if (e.error) {
+                    setError(e.error.message);
+                  } else {
+                    setError(null);
+                  }
+                }}
+              />
+            </div>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+          </div>
+
+          {/* Save Card Checkbox */}
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="save-card"
+              checked={saveCard}
+              onCheckedChange={(checked) => setSaveCard(checked === true)}
+              disabled={isProcessing}
+            />
+            <label
+              htmlFor="save-card"
+              className="text-sm text-muted-foreground cursor-pointer"
+            >
+              Save card for future payments
+            </label>
+          </div>
+        </>
+      )}
 
       {/* Action Buttons */}
       <div className="flex gap-3 pt-2">
@@ -373,13 +410,9 @@ export function PaymentModal({
                 </TabsTrigger>
                 <TabsTrigger
                   value="paypal"
-                  disabled
                   className="flex-1 flex items-center gap-2"
                 >
                   PayPal
-                  <Badge variant="secondary" className="text-xs">
-                    Coming Soon
-                  </Badge>
                 </TabsTrigger>
               </TabsList>
 
@@ -400,11 +433,97 @@ export function PaymentModal({
                 )}
               </TabsContent>
 
-              {/* PayPal Tab (disabled) */}
+              {/* PayPal Tab */}
               <TabsContent value="paypal" className="mt-4">
-                <div className="text-center py-8 text-muted-foreground">
-                  PayPal integration coming soon
-                </div>
+                {isValidAmount ? (
+                  <PayPalScriptProvider
+                    options={{
+                      clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '',
+                      currency: 'USD',
+                      intent: 'capture',
+                    }}
+                  >
+                    <div className="space-y-4">
+                      <div className="text-sm text-muted-foreground text-center">
+                        You will be charged ${numericAmount.toFixed(2)} USD
+                      </div>
+                      <PayPalButtons
+                        fundingSource={FUNDING.PAYPAL}
+                        style={{
+                          layout: 'vertical',
+                          color: 'gold',
+                          shape: 'rect',
+                          label: 'paypal',
+                        }}
+                        createOrder={async () => {
+                          try {
+                            const response = await fetch(
+                              '/api/wallet/paypal/create-order',
+                              {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ amount: numericAmount }),
+                              }
+                            );
+
+                            if (!response.ok) {
+                              throw new Error('Failed to create PayPal order');
+                            }
+
+                            const { data } = await response.json();
+                            return data.orderId;
+                          } catch (error) {
+                            console.error('PayPal create order error:', error);
+                            toast.error('Failed to create PayPal order');
+                            throw error;
+                          }
+                        }}
+                        onApprove={async (data) => {
+                          try {
+                            const response = await fetch(
+                              '/api/wallet/paypal/capture',
+                              {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  orderId: data.orderID,
+                                  amount: numericAmount,
+                                }),
+                              }
+                            );
+
+                            if (!response.ok) {
+                              throw new Error('Failed to capture PayPal payment');
+                            }
+
+                            const result = await response.json();
+                            toast.success(
+                              `Successfully added $${numericAmount.toFixed(
+                                2
+                              )} to your wallet!`
+                            );
+                            onSuccess(numericAmount);
+                            onClose();
+                          } catch (error) {
+                            console.error('PayPal capture error:', error);
+                            toast.error('Payment failed. Please try again.');
+                          }
+                        }}
+                        onError={(err) => {
+                          console.error('PayPal error:', err);
+                          toast.error('PayPal payment failed');
+                        }}
+                        onCancel={() => {
+                          toast.info('Payment cancelled');
+                        }}
+                      />
+                    </div>
+                  </PayPalScriptProvider>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Please enter a valid amount between $1.00 and $10,000.00
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           </div>

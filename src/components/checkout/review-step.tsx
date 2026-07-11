@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { CheckCircle, AlertCircle } from 'lucide-react';
+import { CheckCircle, CreditCardIcon, WalletIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -27,19 +27,22 @@ interface ReviewStepProps {
   };
   walletBalance: number;
   onBack: () => void;
-  onNext: () => void;
-  onAddFunds: () => void;
+  // User pays for the order. Caller is responsible for opening the right
+  // modal based on the chosen payment method.
+  onPay: (method: 'STRIPE' | 'WALLET') => void;
 }
 
 export function ReviewStep({
   orderData,
   walletBalance,
   onBack,
-  onNext,
-  onAddFunds,
+  onPay,
 }: ReviewStepProps) {
-  // State for terms checkbox
+  // State for terms checkbox + payment method choice
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'STRIPE' | 'WALLET'>(
+    walletBalance > 0 ? 'WALLET' : 'STRIPE'
+  );
 
   // Normalize service price to number
   const servicePrice = useMemo(() => {
@@ -61,12 +64,14 @@ export function ReviewStep({
     return orderData.quantity * servicePrice;
   }, [orderData.quantity, servicePrice]);
 
-  // Check if wallet has sufficient balance
   const hasSufficientBalance = walletBalance >= totalPrice;
   const deficit = hasSufficientBalance ? 0 : totalPrice - walletBalance;
 
-  // Determine if user can proceed
-  const canProceed = hasSufficientBalance && termsAccepted;
+  // When wallet is short, only Stripe is available. Otherwise the user
+  // can pick either path.
+  const walletSelectable = hasSufficientBalance;
+
+  const canProceed = termsAccepted && (paymentMethod === 'STRIPE' || hasSufficientBalance);
 
   return (
     <div className="space-y-6">
@@ -77,7 +82,6 @@ export function ReviewStep({
           <CardDescription>Review your order details</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Service Details */}
           <div className="space-y-2">
             <div className="flex justify-between items-start">
               <div>
@@ -88,7 +92,6 @@ export function ReviewStep({
               </div>
             </div>
 
-            {/* Target URL */}
             <div className="pt-2 border-t">
               <div className="text-sm font-medium text-muted-foreground">
                 Target URL
@@ -96,7 +99,6 @@ export function ReviewStep({
               <div className="text-sm break-all">{orderData.targetUrl}</div>
             </div>
 
-            {/* Estimated Delivery */}
             <div className="pt-2 border-t">
               <div className="text-sm font-medium text-muted-foreground">
                 Estimated Delivery
@@ -104,7 +106,6 @@ export function ReviewStep({
               <div className="text-sm">{orderData.service.deliveryTime}</div>
             </div>
 
-            {/* Order Notes (if provided) */}
             {orderData.notes && (
               <div className="pt-2 border-t">
                 <div className="text-sm font-medium text-muted-foreground">
@@ -142,48 +143,67 @@ export function ReviewStep({
         </CardContent>
       </Card>
 
-      {/* Wallet Balance Check */}
+      {/* Payment Method */}
       <Card>
         <CardContent className="pt-6">
           <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-muted-foreground">
-                Your current balance:
-              </span>
-              <span className="text-lg font-semibold">
-                ${walletBalance.toFixed(2)}
-              </span>
+            <div className="text-sm font-medium text-muted-foreground">
+              Your wallet balance:{' '}
+              <span className="text-foreground">${walletBalance.toFixed(2)}</span>
             </div>
 
-            {/* Sufficient Balance */}
-            {hasSufficientBalance && (
-              <div className="flex items-center gap-2 text-green-600 bg-green-50 dark:bg-green-950/20 p-3 rounded-lg">
+            {!hasSufficientBalance && (
+              <div className="flex items-center gap-2 text-amber-600 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-lg">
                 <CheckCircle className="h-5 w-5 flex-shrink-0" />
                 <span className="text-sm font-medium">
-                  Sufficient funds available
+                  You need ${deficit.toFixed(2)} more in your wallet — paying by card instead
                 </span>
               </div>
             )}
 
-            {/* Insufficient Balance */}
-            {!hasSufficientBalance && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-amber-600 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-lg">
-                  <AlertCircle className="h-5 w-5 flex-shrink-0" />
-                  <span className="text-sm font-medium">
-                    You need ${deficit.toFixed(2)} more to complete this order
-                  </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => walletSelectable && setPaymentMethod('WALLET')}
+                disabled={!walletSelectable}
+                className={cn(
+                  'flex items-start gap-3 rounded-lg border p-4 text-left transition-colors',
+                  paymentMethod === 'WALLET' && walletSelectable
+                    ? 'border-primary bg-primary/5'
+                    : 'border-input hover:border-primary/50',
+                  !walletSelectable && 'opacity-50 cursor-not-allowed'
+                )}
+                aria-pressed={paymentMethod === 'WALLET'}
+              >
+                <WalletIcon className="h-5 w-5 mt-0.5" />
+                <div className="flex-1">
+                  <div className="font-medium">Wallet</div>
+                  <div className="text-xs text-muted-foreground">
+                    Pay from your pre-funded balance
+                  </div>
                 </div>
-                <Button
-                  onClick={onAddFunds}
-                  className="w-full"
-                  size="lg"
-                  variant="default"
-                >
-                  Add Funds
-                </Button>
-              </div>
-            )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPaymentMethod('STRIPE')}
+                className={cn(
+                  'flex items-start gap-3 rounded-lg border p-4 text-left transition-colors',
+                  paymentMethod === 'STRIPE'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-input hover:border-primary/50'
+                )}
+                aria-pressed={paymentMethod === 'STRIPE'}
+              >
+                <CreditCardIcon className="h-5 w-5 mt-0.5" />
+                <div className="flex-1">
+                  <div className="font-medium">Credit / Debit Card</div>
+                  <div className="text-xs text-muted-foreground">
+                    Pay securely with Stripe
+                  </div>
+                </div>
+              </button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -243,11 +263,11 @@ export function ReviewStep({
         </Button>
         <Button
           type="button"
-          onClick={onNext}
+          onClick={() => onPay(paymentMethod)}
           disabled={!canProceed}
           className="flex-1"
         >
-          Confirm & Pay
+          {paymentMethod === 'STRIPE' ? 'Pay with Card' : 'Pay from Wallet'}
         </Button>
       </div>
     </div>

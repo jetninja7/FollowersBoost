@@ -7,7 +7,10 @@ import { toast } from 'sonner';
 import { CheckoutStepper } from '@/components/checkout/checkout-stepper';
 import { ConfigureStep } from '@/components/checkout/configure-step';
 import { ReviewStep } from '@/components/checkout/review-step';
-import { PaymentModal } from '@/components/checkout/payment-modal';
+import {
+  OrderPaymentModal,
+  type OrderPaymentResult,
+} from '@/components/checkout/order-payment-modal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
@@ -42,7 +45,7 @@ interface CheckoutPageClientProps {
   userId: string;
 }
 
-export function CheckoutPageClient({ service, userId }: CheckoutPageClientProps) {
+export function CheckoutPageClient({ service, userId: _userId }: CheckoutPageClientProps) {
   const router = useRouter();
 
   // Current step state (1, 2, or 3)
@@ -55,17 +58,18 @@ export function CheckoutPageClient({ service, userId }: CheckoutPageClientProps)
     notes: '',
   });
 
-  // Wallet balance
+  // Wallet balance — used to show the user their balance on the review
+  // step. Not required, since they can pay by card regardless.
   const [walletBalance, setWalletBalance] = useState(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
 
-  // Payment modal state
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  // Stripe payment modal state
+  const [showOrderPaymentModal, setShowOrderPaymentModal] = useState(false);
 
-  // Created order
+  // Created order (for step 3 success view)
   const [createdOrder, setCreatedOrder] = useState<CreatedOrder | null>(null);
 
-  // Order creation loading state
+  // Order creation loading state (wallet path only)
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
 
   // Fetch wallet balance when moving to step 2
@@ -73,6 +77,7 @@ export function CheckoutPageClient({ service, userId }: CheckoutPageClientProps)
     if (currentStep === 2) {
       fetchWalletBalance();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep]);
 
   // Fetch wallet balance
@@ -98,31 +103,43 @@ export function CheckoutPageClient({ service, userId }: CheckoutPageClientProps)
     }
   };
 
-  // Handle Step 1 -> Step 2
+  // Step 1 -> Step 2
   const handleConfigureNext = (data: OrderData) => {
     setOrderData(data);
     setCurrentStep(2);
   };
 
-  // Handle Step 2 -> Step 1
+  // Step 2 -> Step 1
   const handleReviewBack = () => {
     setCurrentStep(1);
   };
 
-  // Handle order creation
-  const createOrder = async () => {
+  /**
+   * Called when the user clicks "Pay" on the review step. Branches based on
+   * the chosen payment method:
+   * - WALLET: POST /api/orders with paymentMethod=WALLET (synchronous, deducts balance)
+   * - STRIPE: open the OrderPaymentModal which creates the order + PaymentIntent
+   */
+  const handlePay = (method: 'STRIPE' | 'WALLET') => {
+    if (method === 'WALLET') {
+      void createWalletOrder();
+    } else {
+      setShowOrderPaymentModal(true);
+    }
+  };
+
+  const createWalletOrder = async () => {
     setIsCreatingOrder(true);
     try {
       const response = await fetch('/api/orders', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           serviceId: service.id,
           quantity: orderData.quantity,
           targetUrl: orderData.targetUrl,
           notes: orderData.notes || undefined,
+          paymentMethod: 'WALLET',
         }),
       });
 
@@ -134,7 +151,6 @@ export function CheckoutPageClient({ service, userId }: CheckoutPageClientProps)
       const result = await response.json();
       const order = result.data;
 
-      // Transform order data
       setCreatedOrder({
         id: order.id,
         status: order.status,
@@ -146,12 +162,10 @@ export function CheckoutPageClient({ service, userId }: CheckoutPageClientProps)
         notes: order.notes,
       });
 
-      // Show success toast
       toast.success('Order placed successfully!', {
         description: `Order #${order.id.substring(0, 8)} has been created`,
       });
 
-      // Move to success step
       setCurrentStep(3);
     } catch (error) {
       console.error('Error creating order:', error);
@@ -163,42 +177,25 @@ export function CheckoutPageClient({ service, userId }: CheckoutPageClientProps)
     }
   };
 
-  // Handle Step 2 -> Step 3 (or payment modal)
-  const handleReviewNext = async () => {
-    // Calculate total price
-    const servicePrice = typeof service.price === 'number'
-      ? service.price
-      : service.price.toNumber?.() ?? 0;
-    const totalPrice = orderData.quantity * servicePrice;
-
-    // Check if balance is sufficient
-    if (walletBalance >= totalPrice) {
-      // Create order directly
-      await createOrder();
-    } else {
-      // Open payment modal
-      setShowPaymentModal(true);
-    }
+  /**
+   * OrderPaymentModal confirmed the card payment. The order already
+   * exists server-side (in PROCESSING). Drop the user on the success
+   * screen.
+   */
+  const handleOrderPaymentSuccess = (order: OrderPaymentResult) => {
+    setCreatedOrder({
+      id: order.orderId,
+      status: 'PROCESSING',
+      totalPrice: order.totalPrice,
+      quantity: order.quantity,
+      targetUrl: order.targetUrl,
+      notes: order.notes,
+    });
+    setShowOrderPaymentModal(false);
+    setCurrentStep(3);
   };
 
-  // Handle add funds button
-  const handleAddFunds = () => {
-    setShowPaymentModal(true);
-  };
-
-  // Handle payment success
-  const handlePaymentSuccess = async (amount: number) => {
-    // Refetch wallet balance
-    await fetchWalletBalance();
-
-    // Close payment modal
-    setShowPaymentModal(false);
-
-    // Create order
-    await createOrder();
-  };
-
-  // Handle cancel in step 1
+  // Step 1 cancel
   const handleCancel = () => {
     router.push('/dashboard/services');
   };
@@ -245,8 +242,7 @@ export function CheckoutPageClient({ service, userId }: CheckoutPageClientProps)
               }}
               walletBalance={walletBalance}
               onBack={handleReviewBack}
-              onNext={handleReviewNext}
-              onAddFunds={handleAddFunds}
+              onPay={handlePay}
             />
           )}
         </>
@@ -254,14 +250,12 @@ export function CheckoutPageClient({ service, userId }: CheckoutPageClientProps)
 
       {currentStep === 3 && createdOrder && (
         <div className="text-center py-12 space-y-6">
-          {/* Success Icon */}
           <div className="flex justify-center">
             <div className="rounded-full bg-green-100 dark:bg-green-950/20 p-4">
               <CheckCircle className="w-16 h-16 text-green-600" />
             </div>
           </div>
 
-          {/* Success Message */}
           <div className="space-y-2">
             <h2 className="text-2xl font-bold">Order placed successfully!</h2>
             <p className="text-muted-foreground">
@@ -269,7 +263,6 @@ export function CheckoutPageClient({ service, userId }: CheckoutPageClientProps)
             </p>
           </div>
 
-          {/* Order Summary Card */}
           <Card className="max-w-md mx-auto text-left">
             <CardHeader>
               <CardTitle className="text-lg">Order Summary</CardTitle>
@@ -312,7 +305,6 @@ export function CheckoutPageClient({ service, userId }: CheckoutPageClientProps)
             </CardContent>
           </Card>
 
-          {/* Action Buttons */}
           <div className="flex gap-4 justify-center pt-4">
             <Link href={`/dashboard/orders/${createdOrder.id}`}>
               <Button size="lg">View Order Details</Button>
@@ -326,17 +318,22 @@ export function CheckoutPageClient({ service, userId }: CheckoutPageClientProps)
         </div>
       )}
 
-      {/* Payment Modal */}
-      {showPaymentModal && (
-        <PaymentModal
-          isOpen={showPaymentModal}
-          onClose={() => setShowPaymentModal(false)}
-          onSuccess={handlePaymentSuccess}
-          minimumAmount={Math.max(0, totalPrice - walletBalance)}
+      {/* Order Payment Modal — Stripe path */}
+      {showOrderPaymentModal && (
+        <OrderPaymentModal
+          isOpen={showOrderPaymentModal}
+          onClose={() => setShowOrderPaymentModal(false)}
+          onSuccess={handleOrderPaymentSuccess}
+          serviceId={service.id}
+          serviceName={service.name}
+          quantity={orderData.quantity}
+          targetUrl={orderData.targetUrl}
+          notes={orderData.notes}
+          amount={totalPrice}
         />
       )}
 
-      {/* Loading Overlay for Order Creation */}
+      {/* Loading overlay for wallet-path order creation */}
       {isCreatingOrder && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center backdrop-blur-sm">
           <Card className="p-6">

@@ -17,6 +17,12 @@ const serverSchema = z.object({
   STRIPE_SECRET_KEY: z.string().startsWith('sk_').optional(),
   STRIPE_WEBHOOK_SECRET: z.string().startsWith('whsec_').optional(),
 
+  // PayPal (optional for testing without PayPal)
+  PAYPAL_CLIENT_ID: z.string().optional(),
+  PAYPAL_CLIENT_SECRET: z.string().optional(),
+  PAYPAL_MODE: z.enum(['sandbox', 'live']).optional(),
+  PAYPAL_WEBHOOK_ID: z.string().optional(),
+
   // Monitoring
   SENTRY_DSN: z.string().url().optional(),
 
@@ -33,6 +39,7 @@ const serverSchema = z.object({
 const clientSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url(),
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().startsWith('pk_').optional(),
+  NEXT_PUBLIC_PAYPAL_CLIENT_ID: z.string().optional(),
 });
 
 // Parse and validate environment variables
@@ -40,6 +47,7 @@ const serverEnv = serverSchema.parse(process.env);
 const clientEnv = clientSchema.parse({
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+  NEXT_PUBLIC_PAYPAL_CLIENT_ID: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID,
 });
 
 // Validate and export typed environment

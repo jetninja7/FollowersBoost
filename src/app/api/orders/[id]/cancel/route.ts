@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
+import { stripe, isStripeEnabled } from '@/lib/stripe';
+import { logger } from '@/lib/logger';
 
 export async function POST(
   request: Request,
@@ -43,6 +45,47 @@ export async function POST(
         { error: { message: 'Wallet not found' } },
         { status: 404 }
       );
+    }
+
+    // Find the original payment transaction for this order
+    const paymentTransaction = await prisma.transaction.findFirst({
+      where: {
+        walletId: wallet.id,
+        type: 'ORDER_PAYMENT',
+        metadata: {
+          path: ['orderId'],
+          equals: order.id,
+        },
+      },
+    });
+
+    // If order was paid with Stripe, issue refund to card
+    if (
+      paymentTransaction &&
+      paymentTransaction.paymentMethod === 'STRIPE' &&
+      paymentTransaction.paymentIntentId &&
+      isStripeEnabled()
+    ) {
+      try {
+        await stripe.refunds.create({
+          payment_intent: paymentTransaction.paymentIntentId,
+          metadata: {
+            orderId: order.id,
+            reason: 'user_cancellation',
+          },
+        });
+        logger.info(
+          { orderId: order.id, paymentIntentId: paymentTransaction.paymentIntentId },
+          'Stripe refund initiated'
+        );
+      } catch (error) {
+        // Log the error but continue with wallet credit
+        // User gets wallet credit immediately, Stripe refund may process separately
+        logger.error(
+          { err: error, orderId: order.id, paymentIntentId: paymentTransaction.paymentIntentId },
+          'Failed to create Stripe refund, proceeding with wallet credit'
+        );
+      }
     }
 
     // Cancel order and refund in transaction
