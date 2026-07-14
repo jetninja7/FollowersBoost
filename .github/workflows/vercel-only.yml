@@ -1,0 +1,15 @@
+# GitHub Actions disabled - using Vercel for deployments
+# This prevents unnecessary Action runs
+name: Vercel Deployment Only
+
+on: [push, pull_request]
+
+jobs:
+  info:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Info
+        run: |
+          echo "✅ Deployment handled by Vercel"
+          echo "📦 No Actions needed"
+          echo "🚀 Push to main triggers automatic Vercel deploy"

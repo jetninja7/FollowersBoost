@@ -1,0 +1,29 @@
+# Copy these to Vercel Environment Variables
+
+# Auth (CHANGE THESE!)
+NEXTAUTH_URL=https://YOUR_PROJECT.vercel.app
+NEXTAUTH_SECRET=GENERATE_NEW_SECRET_32_CHARS
+NEXT_PUBLIC_APP_URL=https://YOUR_PROJECT.vercel.app
+
+# Database (Vercel will provide this after you create Postgres)
+DATABASE_URL=postgresql://...will_be_auto_added_by_vercel
+
+# Stripe (Use TEST keys for now, change to LIVE later)
+STRIPE_SECRET_KEY=sk_test_51...
+STRIPE_WEBHOOK_SECRET=whsec_...
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_51...
+
+# PayPal (Use SANDBOX for now)
+PAYPAL_CLIENT_ID=your_sandbox_client_id
+PAYPAL_CLIENT_SECRET=your_sandbox_secret
+PAYPAL_MODE=sandbox
+NEXT_PUBLIC_PAYPAL_CLIENT_ID=your_sandbox_client_id
+
+# Email (Your existing test key)
+RESEND_API_KEY=re_AkdUHgMv_JWRKHZt1ZQAriwv2mNweN4u6
+EMAIL_FROM=noreply@followersboost.com
+
+# Optional (add later)
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+SENTRY_DSN=
