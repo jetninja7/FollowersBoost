@@ -24,8 +24,22 @@ export async function GET(
       );
     }
 
+    // Fetch provider info if available
+    let providerName = null;
+    if (order.fulfillmentProviderId) {
+      const provider = await prisma.provider.findUnique({
+        where: { id: order.fulfillmentProviderId },
+        select: { name: true },
+      });
+      providerName = provider?.name || null;
+    }
+
     return NextResponse.json({
-      data: order,
+      data: {
+        ...order,
+        totalPrice: order.totalPrice.toString(),
+        providerName,
+      },
     });
   } catch (error) {
     console.error('Order detail fetch error:', error);

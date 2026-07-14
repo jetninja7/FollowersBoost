@@ -118,9 +118,23 @@ PENDING → PROCESSING → IN_PROGRESS → COMPLETED
 - `processPendingOrders()` - Cron job: move PENDING → PROCESSING after 1 minute
 - `detectStuckOrders()` - Cron job: flag IN_PROGRESS orders with no progress for 24+ hours
 
-**Cron schedule:** Daily at midnight (see `vercel.json`)
+**Auto-fulfillment:** `src/lib/fulfillment/auto-fulfillment.ts`
+- `submitOrderToProvider()` - Submit order to external provider API
+- `updateOrderFromProvider()` - Poll provider for order status updates
+- `processOrdersForFulfillment()` - Batch submit orders to providers (50/batch)
+- `updateActiveOrdersFromProviders()` - Batch check order progress (100/batch)
+- Includes retry logic with exponential backoff (3 attempts max)
+
+**Provider system:** `src/lib/fulfillment/provider-registry.ts`
+- Registry manages all fulfillment providers (SMM panels, custom APIs)
+- Selects best provider by health status and priority
+- Built-in providers: SMM Panel (generic), Mock (testing)
+- Admin UI: `/admin/providers` - CRUD, health monitoring, statistics
+
+**Cron schedule:** Every 5 minutes (see `vercel.json`)
 - Endpoint: `/api/cron/process-orders`
 - Auth: Vercel Cron secret header validation
+- Actions: Process pending → Submit to providers → Update from providers → Detect stuck orders
 
 ### Payment Integration
 
@@ -375,14 +389,16 @@ npx prisma studio  # Visual database browser
 - ✅ Phase 3B: Orders & Wallet (checkout flow, payment integration, order management)
 - ✅ Phase 4: Admin panel (user management, order management, service CRUD)
 - ✅ Phase 5: Payment integration (Stripe + PayPal, saved cards, webhook handling)
+- ✅ Phase 6: Order Fulfillment Automation (provider system, auto-processing, health monitoring)
+- ✅ Phase 7: Email Notifications (Resend + React Email, order & wallet emails)
 
-**Current state:** Production-ready MVP. All core features functional.
+**Current state:** Production-ready SaaS with automated fulfillment and email notifications. All core features functional.
 
 **Outstanding work:**
-- Order fulfillment automation (currently manual via admin panel)
-- Email notifications (in-app notifications only)
+- Email preferences/unsubscribe functionality
 - Analytics dashboard enhancements
 - Rate limiting enforcement (requires Upstash setup)
+- Provider credential encryption
 
 **Memory reference:** See `.claude/projects/-Users-balu-FollowersBoost/memory/followersboost-project-state.md` for phase-specific details.
 

@@ -7,7 +7,8 @@ import {
   LayoutDashboard,
   ShoppingCart,
   Users,
-  Package
+  Package,
+  Zap,
 } from 'lucide-react';
 
 interface NavItem {
@@ -21,6 +22,7 @@ const navItems: NavItem[] = [
   { href: '/admin/orders', label: 'Orders', icon: ShoppingCart },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/services', label: 'Services', icon: Package },
+  { href: '/admin/providers', label: 'Providers', icon: Zap },
 ];
 
 export function AdminSidebar() {

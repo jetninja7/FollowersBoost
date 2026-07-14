@@ -3,6 +3,8 @@ import { requireAuth } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { paypalHttpClient, PayPalOrders, isPayPalEnabled } from '@/lib/paypal';
 import { z } from 'zod';
+import { sendWalletDepositEmail } from '@/lib/email/email-service';
+import { logger } from '@/lib/logger';
 
 const captureOrderSchema = z.object({
   orderId: z.string(),
@@ -104,6 +106,17 @@ export async function POST(request: Request) {
       });
 
       return { transaction, wallet: updatedWallet };
+    });
+
+    // Send email notification (async, don't wait)
+    sendWalletDepositEmail({
+      to: session.user.email!,
+      transactionId: result.transaction.id,
+      amount: amount.toFixed(2),
+      paymentMethod: 'PayPal',
+      newBalance: Number(result.wallet.balance).toFixed(2),
+    }).catch((error) => {
+      logger.error({ error, transactionId: result.transaction.id }, 'Failed to send PayPal deposit email');
     });
 
     return NextResponse.json({

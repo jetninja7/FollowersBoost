@@ -204,7 +204,10 @@ model Order {
   startCount            Int?
   currentCount          Int?
   fulfillmentProvider   FulfillmentProvider?
-  fulfillmentProviderId String?
+  fulfillmentProviderId String? // Reference to Provider.id
+  providerOrderId       String? // Provider's tracking ID for this order
+  retryCount            Int                  @default(0)
+  lastRetryAt           DateTime?
   notes                 String?
   adminNotes            String?
   failureReason         String?
@@ -220,6 +223,8 @@ model Order {
   @@index([userId, status])
   @@index([status, createdAt(sort: Desc)])
   @@index([createdAt(sort: Desc)])
+  @@index([fulfillmentProviderId])
+  @@index([providerOrderId])
 }
 
 model OrderLog {
@@ -267,4 +272,63 @@ model AuditLog {
   @@index([userId, createdAt(sort: Desc)])
   @@index([entity, entityId])
   @@index([createdAt(sort: Desc)])
+}
+
+enum ProviderType {
+  API
+  MANUAL
+  CUSTOM
+}
+
+model Provider {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  slug        String       @unique
+  type        ProviderType
+  isEnabled   Boolean      @default(true)
+  apiUrl      String?
+  credentials Json? // Encrypted API keys, secrets
+  settings    Json? // Provider-specific settings (timeout, retries, etc.)
+  priority    Int          @default(0) // Higher priority providers are tried first
+
+  // Health metrics
+  lastHealthCheck     DateTime?
+  isHealthy           Boolean   @default(true)
+  lastSuccessfulCall  DateTime?
+  lastFailedCall      DateTime?
+  errorRate           Decimal   @default(0.00) @db.Decimal(5, 4) // 0.0000 to 1.0000
+  averageResponseTime Int? // in milliseconds
+
+  // Statistics
+  totalOrders     Int @default(0)
+  successfulOrders Int @default(0)
+  failedOrders    Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  providerServices ProviderService[]
+
+  @@index([isEnabled, priority(sort: Desc)])
+  @@index([slug])
+}
+
+model ProviderService {
+  id                 String   @id @default(uuid())
+  providerId         String
+  serviceId          String // Our Service ID
+  providerServiceId  String // Provider's internal service ID/code
+  minQuantity        Int?
+  maxQuantity        Int?
+  pricePerUnit       Decimal? @db.Decimal(10, 4) // Provider's cost per unit
+  isEnabled          Boolean  @default(true)
+  lastSyncedAt       DateTime @default(now())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, serviceId])
+  @@index([providerId, isEnabled])
+  @@index([serviceId])
 }

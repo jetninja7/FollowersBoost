@@ -3,53 +3,76 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { Home, ShoppingBag, Package, Wallet, User } from 'lucide-react';
+import { ShoppingBag, Package, Wallet, Headphones, Link as LinkIcon, Menu } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const navigation = [
-  { name: 'Home', href: '/dashboard', icon: Home },
-  { name: 'Browse Services', href: '/dashboard/services', icon: ShoppingBag },
-  { name: 'My Orders', href: '/dashboard/orders', icon: Package },
-  { name: 'Wallet', href: '/dashboard/wallet', icon: Wallet },
-  { name: 'Profile', href: '/dashboard/profile', icon: User },
+  { name: 'New Order', href: '/dashboard', icon: ShoppingBag, primary: true },
+  { name: 'Orders History', href: '/dashboard/orders', icon: Menu },
+  { name: 'Services', href: '/dashboard/services', icon: Package },
+  { name: 'Add Funds', href: '/dashboard/wallet', icon: Wallet },
+  { name: 'Support', href: '/dashboard/support', icon: Headphones },
+  { name: 'API', href: '/dashboard/api', icon: LinkIcon },
 ];
 
 export function DashboardSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden lg:fixed lg:inset-y-0 lg:z-40 lg:flex lg:w-60 lg:flex-col lg:pt-16">
-      <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-6 pb-4">
-        <nav className="flex flex-1 flex-col pt-8">
-          <ul role="list" className="flex flex-1 flex-col gap-y-7">
-            <li>
-              <ul role="list" className="-mx-2 space-y-1">
-                {navigation.map((item) => {
-                  const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-                  return (
-                    <li key={item.name}>
-                      <Link
-                        href={item.href}
-                        className={cn(
-                          isActive
-                            ? 'bg-gray-50 text-blue-600'
-                            : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50',
-                          'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold'
-                        )}
+    <aside className="hidden lg:fixed lg:inset-y-0 lg:z-40 lg:flex lg:w-60 lg:flex-col">
+      {/* Blue sidebar background */}
+      <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-gradient-to-b from-blue-600 to-blue-700 px-4 pb-4">
+        {/* Logo */}
+        <div className="flex h-20 items-center border-b border-blue-500/30 px-2">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+              <span className="text-2xl">📊</span>
+            </div>
+            <div className="text-white">
+              <div className="font-bold text-lg">FollowersMeta</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex flex-1 flex-col">
+          <ul role="list" className="flex flex-1 flex-col gap-y-1">
+            {navigation.map((item) => {
+              const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+              const Icon = item.icon;
+
+              if (item.primary) {
+                return (
+                  <li key={item.name} className="mb-3">
+                    <Link href={item.href}>
+                      <Button
+                        className="w-full justify-start bg-white text-blue-600 hover:bg-gray-100 h-12 text-base font-semibold"
                       >
-                        <item.icon
-                          className={cn(
-                            isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-blue-600',
-                            'h-6 w-6 shrink-0'
-                          )}
-                          aria-hidden="true"
-                        />
+                        <Icon className="mr-3 h-5 w-5" />
                         {item.name}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </li>
+                      </Button>
+                    </Link>
+                  </li>
+                );
+              }
+
+              return (
+                <li key={item.name}>
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      isActive
+                        ? 'bg-blue-500 text-white'
+                        : 'text-blue-100 hover:bg-blue-500/50 hover:text-white',
+                      'group flex gap-x-3 rounded-md p-3 text-sm leading-6 font-medium transition-colors'
+                    )}
+                  >
+                    <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                    {item.name}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </nav>
       </div>

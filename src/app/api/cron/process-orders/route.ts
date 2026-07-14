@@ -4,10 +4,17 @@ import {
   processPendingOrders,
   detectStuckOrders,
 } from '@/lib/fulfillment/order-processor';
+import {
+  processOrdersForFulfillment,
+  updateActiveOrdersFromProviders,
+} from '@/lib/fulfillment/auto-fulfillment';
+import { initializeProviderRegistry } from '@/lib/fulfillment/provider-registry';
 
 /**
  * Cron endpoint for order processing
  * - Transitions PENDING orders (>1 min old) to PROCESSING
+ * - Submits PROCESSING orders to fulfillment providers
+ * - Updates IN_PROGRESS orders from providers
  * - Detects stuck IN_PROGRESS orders (no update in 24h)
  * - Logs execution to audit trail
  *
@@ -25,10 +32,19 @@ export async function GET(req: NextRequest) {
   const startTime = Date.now();
 
   try {
-    // Process pending orders
+    // Initialize provider registry
+    await initializeProviderRegistry();
+
+    // Step 1: Transition PENDING → PROCESSING
     const pendingResult = await processPendingOrders();
 
-    // Detect stuck orders
+    // Step 2: Submit PROCESSING orders to providers
+    const fulfillmentResult = await processOrdersForFulfillment();
+
+    // Step 3: Update IN_PROGRESS orders from providers
+    const updateResult = await updateActiveOrdersFromProviders();
+
+    // Step 4: Detect stuck orders
     const stuckResult = await detectStuckOrders();
 
     const duration = Date.now() - startTime;
@@ -43,6 +59,8 @@ export async function GET(req: NextRequest) {
         changes: {
           duration,
           pendingOrders: pendingResult,
+          fulfillment: fulfillmentResult,
+          updates: updateResult,
           stuckOrders: stuckResult,
         },
       },
@@ -55,6 +73,16 @@ export async function GET(req: NextRequest) {
         processed: pendingResult.processed,
         successful: pendingResult.successful,
         failed: pendingResult.failed,
+      },
+      fulfillment: {
+        processed: fulfillmentResult.processed,
+        submitted: fulfillmentResult.submitted,
+        failed: fulfillmentResult.failed,
+      },
+      updates: {
+        checked: updateResult.checked,
+        updated: updateResult.updated,
+        failed: updateResult.failed,
       },
       stuckOrders: {
         detected: stuckResult.detected,

@@ -8,7 +8,7 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <DashboardSidebar />
 
       {/* Header with notification bell */}
@@ -19,7 +19,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       </header>
 
       {/* Main content area with left margin for sidebar */}
-      <main className="lg:pl-60">
+      <main className="lg:pl-60 bg-gray-50 min-h-screen">
         <div className="px-4 sm:px-6 lg:px-8 py-8">
           {children}
         </div>

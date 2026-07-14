@@ -37,6 +37,9 @@ interface OrderData {
   updatedAt: string;
   completedAt: string | null;
   unitPrice: string;
+  fulfillmentProvider: 'MANUAL' | 'API' | null;
+  providerName: string | null;
+  providerOrderId: string | null;
 }
 
 interface OrderDetailResponse {
@@ -384,6 +387,24 @@ export function OrderDetailClient({ initialOrder }: OrderDetailClientProps) {
               <div className="text-sm font-medium text-muted-foreground">Estimated Delivery</div>
               <div className="text-base font-semibold">{order.estimatedDeliveryTime}</div>
             </div>
+
+            {/* Fulfillment Provider */}
+            {order.providerName && (
+              <div className="space-y-1">
+                <div className="text-sm font-medium text-muted-foreground">Fulfillment Provider</div>
+                <div className="flex items-center gap-2">
+                  <div className="text-base font-semibold">{order.providerName}</div>
+                  <Badge variant="outline" className="text-xs">
+                    {order.fulfillmentProvider}
+                  </Badge>
+                </div>
+                {order.providerOrderId && (
+                  <div className="text-xs text-muted-foreground">
+                    Provider Order ID: {order.providerOrderId}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Order Notes */}
             {order.notes && (

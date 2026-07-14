@@ -4,6 +4,7 @@ import type Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
 import { prisma } from '@/lib/db/prisma';
 import { logger } from '@/lib/logger';
+import { sendWalletDepositEmail } from '@/lib/email/email-service';
 
 // Webhook payloads we care about. We intentionally don't acknowledge other
 // event types — return 200 to keep Stripe from retrying, but do no work.
@@ -195,6 +196,29 @@ async function handleWalletDepositSucceeded(
       message: `$${Number(transaction.amount).toFixed(2)} has been added to your wallet.`,
     },
   });
+
+  // Send email notification (async, don't wait)
+  const user = await prisma.user.findUnique({
+    where: { id: transaction.wallet.userId },
+    select: { email: true },
+  });
+
+  if (user) {
+    const updatedWallet = await prisma.wallet.findUnique({
+      where: { id: transaction.walletId },
+      select: { balance: true },
+    });
+
+    sendWalletDepositEmail({
+      to: user.email,
+      transactionId: transaction.id,
+      amount: Number(transaction.amount).toFixed(2),
+      paymentMethod: 'Stripe',
+      newBalance: updatedWallet ? Number(updatedWallet.balance).toFixed(2) : '0.00',
+    }).catch((error) => {
+      logger.error({ error, transactionId: transaction.id }, 'Failed to send wallet deposit email');
+    });
+  }
 
   logger.info({ paymentIntentId: paymentIntent.id, transactionId: transaction.id }, 'Wallet deposit succeeded');
 }
