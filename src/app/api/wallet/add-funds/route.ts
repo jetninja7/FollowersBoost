@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { stripe, isStripeEnabled } from '@/lib/stripe';
 import { getOrCreateStripeCustomer } from '@/lib/stripe-customer';
+import { applyRateLimit } from '@/lib/api/rate-limit-helpers';
 import { z } from 'zod';
 
 const addFundsSchema = z.object({
@@ -10,8 +11,14 @@ const addFundsSchema = z.object({
   paymentMethod: z.enum(['stripe', 'paypal']),
 });
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // Apply rate limiting for authenticated API
+    const rateLimitResponse = await applyRateLimit(request, 'api');
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     const session = await requireAuth();
     const body = await request.json();
 

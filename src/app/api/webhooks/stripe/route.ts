@@ -211,6 +211,7 @@ async function handleWalletDepositSucceeded(
 
     sendWalletDepositEmail({
       to: user.email,
+      userId: transaction.wallet.userId,
       transactionId: transaction.id,
       amount: Number(transaction.amount).toFixed(2),
       paymentMethod: 'Stripe',

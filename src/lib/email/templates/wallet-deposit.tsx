@@ -7,6 +7,7 @@ interface WalletDepositEmailProps {
   amount: string;
   paymentMethod: string;
   newBalance: string;
+  unsubscribeUrl?: string;
 }
 
 export function WalletDepositEmail({
@@ -14,11 +15,12 @@ export function WalletDepositEmail({
   amount,
   paymentMethod,
   newBalance,
+  unsubscribeUrl,
 }: WalletDepositEmailProps) {
   const walletUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/wallet`;
 
   return (
-    <BaseEmailLayout previewText={`$${amount} added to your wallet`}>
+    <BaseEmailLayout previewText={`$${amount} added to your wallet`} unsubscribeUrl={unsubscribeUrl}>
       <Heading style={h1}>Funds Added Successfully! 💰</Heading>
 
       <Text style={text}>

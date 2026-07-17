@@ -34,10 +34,11 @@ model User {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  accounts      Account[]
-  wallet        Wallet?
-  orders        Order[]
-  notifications Notification[]
+  accounts         Account[]
+  wallet           Wallet?
+  orders           Order[]
+  notifications    Notification[]
+  emailPreferences EmailPreferences?
 
   @@index([email])
 }
@@ -331,4 +332,30 @@ model ProviderService {
   @@unique([providerId, serviceId])
   @@index([providerId, isEnabled])
   @@index([serviceId])
+}
+
+model EmailPreferences {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+
+  // Email subscription preferences
+  orderUpdates     Boolean @default(true)  // Order status changes
+  orderCompleted   Boolean @default(true)  // Order completion notifications
+  orderFailed      Boolean @default(true)  // Order failure notifications
+  walletUpdates    Boolean @default(true)  // Wallet transactions
+  promotional      Boolean @default(true)  // Marketing emails
+  newsletter       Boolean @default(true)  // Product updates & news
+
+  // Global unsubscribe
+  unsubscribedAll  Boolean @default(false) // One-click unsubscribe from all
+
+  // Metadata
+  unsubscribeToken String  @unique @default(uuid()) // For secure unsubscribe links
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([unsubscribeToken])
 }

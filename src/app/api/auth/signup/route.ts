@@ -1,9 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { signupSchema } from '@/lib/validations/auth';
 import { prisma } from '@/lib/db/prisma';
 import { hashPassword } from '@/lib/auth/password';
+import { applyRateLimit } from '@/lib/api/rate-limit-helpers';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // Apply rate limiting: 5 signup attempts per 15 minutes per IP
+  const rateLimitResponse = await applyRateLimit(request, 'auth');
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   try {
     const body = await request.json();
 

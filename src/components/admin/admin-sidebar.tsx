@@ -9,6 +9,7 @@ import {
   Users,
   Package,
   Zap,
+  BarChart3,
 } from 'lucide-react';
 
 interface NavItem {
@@ -19,6 +20,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/admin/orders', label: 'Orders', icon: ShoppingCart },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/services', label: 'Services', icon: Package },

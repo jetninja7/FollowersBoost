@@ -4,6 +4,8 @@ import { AnalyticsCards } from '@/components/admin/analytics-cards';
 import { OrderStatus } from '@prisma/client';
 import { getChartData } from '@/actions/analytics';
 import { AnalyticsCharts } from '@/components/admin/analytics-charts';
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 
 async function getAnalyticsData() {
   // Date calculations
@@ -130,7 +132,16 @@ export default async function AdminDashboardPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Dashboard</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+        <Link
+          href="/admin/analytics"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+        >
+          Advanced Analytics
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
 
       {/* Existing cards - unchanged */}
       <AnalyticsCards {...cardData} />

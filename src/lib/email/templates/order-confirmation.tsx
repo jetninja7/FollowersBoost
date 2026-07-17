@@ -10,6 +10,7 @@ interface OrderConfirmationEmailProps {
   totalPrice: string;
   targetUrl: string;
   estimatedDelivery: string;
+  unsubscribeUrl?: string;
 }
 
 export function OrderConfirmationEmail({
@@ -20,11 +21,12 @@ export function OrderConfirmationEmail({
   totalPrice,
   targetUrl,
   estimatedDelivery,
+  unsubscribeUrl,
 }: OrderConfirmationEmailProps) {
   const orderUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/orders/${orderId}`;
 
   return (
-    <BaseEmailLayout previewText={`Order ${orderId.slice(0, 8)} confirmed`}>
+    <BaseEmailLayout previewText={`Order ${orderId.slice(0, 8)} confirmed`} unsubscribeUrl={unsubscribeUrl}>
       <Heading style={h1}>Order Confirmed! 🎉</Heading>
 
       <Text style={text}>

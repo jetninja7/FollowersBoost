@@ -7,6 +7,7 @@ interface OrderFailedEmailProps {
   serviceName: string;
   totalPrice: string;
   failureReason?: string;
+  unsubscribeUrl?: string;
 }
 
 export function OrderFailedEmail({
@@ -14,12 +15,13 @@ export function OrderFailedEmail({
   serviceName,
   totalPrice,
   failureReason,
+  unsubscribeUrl,
 }: OrderFailedEmailProps) {
   const walletUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/wallet`;
   const supportUrl = `${process.env.NEXT_PUBLIC_APP_URL}/support`;
 
   return (
-    <BaseEmailLayout previewText={`Order ${orderId.slice(0, 8)} refunded - Issue occurred`}>
+    <BaseEmailLayout previewText={`Order ${orderId.slice(0, 8)} refunded - Issue occurred`} unsubscribeUrl={unsubscribeUrl}>
       <Heading style={h1}>Order Refunded</Heading>
 
       <Text style={text}>

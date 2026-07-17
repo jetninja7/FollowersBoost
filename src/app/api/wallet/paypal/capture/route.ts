@@ -111,6 +111,7 @@ export async function POST(request: Request) {
     // Send email notification (async, don't wait)
     sendWalletDepositEmail({
       to: session.user.email!,
+      userId: session.user.id,
       transactionId: result.transaction.id,
       amount: amount.toFixed(2),
       paymentMethod: 'PayPal',

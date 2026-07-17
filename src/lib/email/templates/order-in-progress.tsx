@@ -8,6 +8,7 @@ interface OrderInProgressEmailProps {
   quantity: number;
   currentCount: number;
   startCount: number;
+  unsubscribeUrl?: string;
 }
 
 export function OrderInProgressEmail({
@@ -16,13 +17,14 @@ export function OrderInProgressEmail({
   quantity,
   currentCount,
   startCount,
+  unsubscribeUrl,
 }: OrderInProgressEmailProps) {
   const orderUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/orders/${orderId}`;
   const delivered = currentCount - startCount;
   const progress = Math.round((delivered / quantity) * 100);
 
   return (
-    <BaseEmailLayout previewText={`Order ${orderId.slice(0, 8)} is now being delivered`}>
+    <BaseEmailLayout previewText={`Order ${orderId.slice(0, 8)} is now being delivered`} unsubscribeUrl={unsubscribeUrl}>
       <Heading style={h1}>Delivery Started! 🚀</Heading>
 
       <Text style={text}>

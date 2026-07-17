@@ -13,12 +13,14 @@ import { OrderCompletedEmail } from './templates/order-completed';
 import { OrderFailedEmail } from './templates/order-failed';
 import { WalletDepositEmail } from './templates/wallet-deposit';
 import { logger } from '@/lib/logger';
+import { shouldSendEmail, getUnsubscribeUrl } from './preferences';
 
 /**
  * Send order confirmation email
  */
 export async function sendOrderConfirmationEmail(params: {
   to: string;
+  userId: string;
   orderId: string;
   serviceName: string;
   platform: string;
@@ -32,7 +34,16 @@ export async function sendOrderConfirmationEmail(params: {
     return;
   }
 
+  // Check user preferences
+  const canSend = await shouldSendEmail(params.userId, 'orderUpdates');
+  if (!canSend) {
+    logger.info({ orderId: params.orderId, userId: params.userId }, 'Skipping email - user unsubscribed');
+    return;
+  }
+
   try {
+    const unsubscribeUrl = await getUnsubscribeUrl(params.userId);
+
     const html = await renderEmail(
       OrderConfirmationEmail({
         orderId: params.orderId,
@@ -42,6 +53,7 @@ export async function sendOrderConfirmationEmail(params: {
         totalPrice: params.totalPrice,
         targetUrl: params.targetUrl,
         estimatedDelivery: params.estimatedDelivery,
+        unsubscribeUrl,
       })
     );
 
@@ -60,6 +72,7 @@ export async function sendOrderConfirmationEmail(params: {
  */
 export async function sendOrderInProgressEmail(params: {
   to: string;
+  userId: string;
   orderId: string;
   serviceName: string;
   quantity: number;
@@ -71,7 +84,15 @@ export async function sendOrderInProgressEmail(params: {
     return;
   }
 
+  const canSend = await shouldSendEmail(params.userId, 'orderUpdates');
+  if (!canSend) {
+    logger.info({ orderId: params.orderId, userId: params.userId }, 'Skipping email - user unsubscribed');
+    return;
+  }
+
   try {
+    const unsubscribeUrl = await getUnsubscribeUrl(params.userId);
+
     const html = await renderEmail(
       OrderInProgressEmail({
         orderId: params.orderId,
@@ -79,6 +100,7 @@ export async function sendOrderInProgressEmail(params: {
         quantity: params.quantity,
         currentCount: params.currentCount,
         startCount: params.startCount,
+        unsubscribeUrl,
       })
     );
 
@@ -97,6 +119,7 @@ export async function sendOrderInProgressEmail(params: {
  */
 export async function sendOrderCompletedEmail(params: {
   to: string;
+  userId: string;
   orderId: string;
   serviceName: string;
   quantity: number;
@@ -106,12 +129,21 @@ export async function sendOrderCompletedEmail(params: {
     return;
   }
 
+  const canSend = await shouldSendEmail(params.userId, 'orderCompleted');
+  if (!canSend) {
+    logger.info({ orderId: params.orderId, userId: params.userId }, 'Skipping email - user unsubscribed');
+    return;
+  }
+
   try {
+    const unsubscribeUrl = await getUnsubscribeUrl(params.userId);
+
     const html = await renderEmail(
       OrderCompletedEmail({
         orderId: params.orderId,
         serviceName: params.serviceName,
         quantity: params.quantity,
+        unsubscribeUrl,
       })
     );
 
@@ -130,6 +162,7 @@ export async function sendOrderCompletedEmail(params: {
  */
 export async function sendOrderFailedEmail(params: {
   to: string;
+  userId: string;
   orderId: string;
   serviceName: string;
   totalPrice: string;
@@ -140,13 +173,22 @@ export async function sendOrderFailedEmail(params: {
     return;
   }
 
+  const canSend = await shouldSendEmail(params.userId, 'orderFailed');
+  if (!canSend) {
+    logger.info({ orderId: params.orderId, userId: params.userId }, 'Skipping email - user unsubscribed');
+    return;
+  }
+
   try {
+    const unsubscribeUrl = await getUnsubscribeUrl(params.userId);
+
     const html = await renderEmail(
       OrderFailedEmail({
         orderId: params.orderId,
         serviceName: params.serviceName,
         totalPrice: params.totalPrice,
         failureReason: params.failureReason,
+        unsubscribeUrl,
       })
     );
 
@@ -165,6 +207,7 @@ export async function sendOrderFailedEmail(params: {
  */
 export async function sendWalletDepositEmail(params: {
   to: string;
+  userId: string;
   transactionId: string;
   amount: string;
   paymentMethod: string;
@@ -175,13 +218,22 @@ export async function sendWalletDepositEmail(params: {
     return;
   }
 
+  const canSend = await shouldSendEmail(params.userId, 'walletUpdates');
+  if (!canSend) {
+    logger.info({ transactionId: params.transactionId, userId: params.userId }, 'Skipping email - user unsubscribed');
+    return;
+  }
+
   try {
+    const unsubscribeUrl = await getUnsubscribeUrl(params.userId);
+
     const html = await renderEmail(
       WalletDepositEmail({
         transactionId: params.transactionId,
         amount: params.amount,
         paymentMethod: params.paymentMethod,
         newBalance: params.newBalance,
+        unsubscribeUrl,
       })
     );
 

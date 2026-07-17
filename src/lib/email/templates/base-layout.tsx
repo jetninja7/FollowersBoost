@@ -13,9 +13,10 @@ import * as React from 'react';
 interface BaseEmailLayoutProps {
   children: React.ReactNode;
   previewText?: string;
+  unsubscribeUrl?: string;
 }
 
-export function BaseEmailLayout({ children, previewText }: BaseEmailLayoutProps) {
+export function BaseEmailLayout({ children, previewText, unsubscribeUrl }: BaseEmailLayoutProps) {
   return (
     <Html>
       <Head />
@@ -37,13 +38,21 @@ export function BaseEmailLayout({ children, previewText }: BaseEmailLayoutProps)
               © 2026 FollowersBoost. All rights reserved.
             </Text>
             <Text style={footerText}>
-              <Link href={`${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings`} style={footerLink}>
+              <Link href={`${process.env.NEXT_PUBLIC_APP_URL}/settings/email-preferences`} style={footerLink}>
                 Email Preferences
               </Link>
               {' | '}
               <Link href={`${process.env.NEXT_PUBLIC_APP_URL}/support`} style={footerLink}>
                 Support
               </Link>
+              {unsubscribeUrl && (
+                <>
+                  {' | '}
+                  <Link href={unsubscribeUrl} style={footerLink}>
+                    Unsubscribe
+                  </Link>
+                </>
+              )}
             </Text>
           </Section>
         </Container>

@@ -145,6 +145,7 @@ async function sendStatusChangeEmail(
       // Send confirmation email (only on initial order creation, not status change)
       await sendOrderConfirmationEmail({
         to: user.email,
+        userId,
         orderId,
         serviceName,
         platform,
@@ -158,6 +159,7 @@ async function sendStatusChangeEmail(
     case 'IN_PROGRESS':
       await sendOrderInProgressEmail({
         to: user.email,
+        userId,
         orderId,
         serviceName,
         quantity: order.quantity,
@@ -169,6 +171,7 @@ async function sendStatusChangeEmail(
     case 'COMPLETED':
       await sendOrderCompletedEmail({
         to: user.email,
+        userId,
         orderId,
         serviceName,
         quantity: order.quantity,
@@ -180,6 +183,7 @@ async function sendStatusChangeEmail(
     case 'REFUNDED':
       await sendOrderFailedEmail({
         to: user.email,
+        userId,
         orderId,
         serviceName,
         totalPrice,

@@ -6,18 +6,20 @@ interface OrderCompletedEmailProps {
   orderId: string;
   serviceName: string;
   quantity: number;
+  unsubscribeUrl?: string;
 }
 
 export function OrderCompletedEmail({
   orderId,
   serviceName,
   quantity,
+  unsubscribeUrl,
 }: OrderCompletedEmailProps) {
   const orderUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/orders/${orderId}`;
   const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`;
 
   return (
-    <BaseEmailLayout previewText={`Order ${orderId.slice(0, 8)} completed successfully`}>
+    <BaseEmailLayout previewText={`Order ${orderId.slice(0, 8)} completed successfully`} unsubscribeUrl={unsubscribeUrl}>
       <Heading style={h1}>Order Completed! ✅</Heading>
 
       <Text style={text}>

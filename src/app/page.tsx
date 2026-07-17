@@ -2,8 +2,8 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { HeroModern } from "@/components/landing/hero-modern";
 import { PlatformsShowcase } from "@/components/landing/platforms-showcase";
-import { FeaturesModern } from "@/components/landing/features-modern";
-import { HowItWorks } from "@/components/landing/how-it-works";
+import { FeaturesEnhanced } from "@/components/landing/features-enhanced";
+import { HowItWorksEnhanced } from "@/components/landing/how-it-works-enhanced";
 import { TestimonialsModern } from "@/components/landing/testimonials-modern";
 import { FAQ } from "@/components/landing/faq";
 import { CTAModern } from "@/components/landing/cta-modern";
@@ -15,8 +15,8 @@ export default function Home() {
       <div className="flex-1">
         <HeroModern />
         <PlatformsShowcase />
-        <FeaturesModern />
-        <HowItWorks />
+        <FeaturesEnhanced />
+        <HowItWorksEnhanced />
         <TestimonialsModern />
         <FAQ />
         <CTAModern />
