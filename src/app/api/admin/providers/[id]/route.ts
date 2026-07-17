@@ -13,8 +13,8 @@ import { z } from 'zod';
 const updateProviderSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   apiUrl: z.string().url().optional().nullable(),
-  credentials: z.record(z.unknown()).optional(),
-  settings: z.record(z.unknown()).optional(),
+  credentials: z.record(z.string(), z.unknown()).optional(),
+  settings: z.record(z.string(), z.unknown()).optional(),
   priority: z.number().int().min(0).max(100).optional(),
   isEnabled: z.boolean().optional(),
 });
@@ -142,8 +142,8 @@ export async function PUT(
       data: {
         ...(data.name && { name: data.name }),
         ...(data.apiUrl !== undefined && { apiUrl: data.apiUrl }),
-        ...(data.credentials && { credentials: data.credentials }),
-        ...(data.settings && { settings: data.settings }),
+        ...(data.credentials && { credentials: data.credentials as any }),
+        ...(data.settings && { settings: data.settings as any }),
         ...(data.priority !== undefined && { priority: data.priority }),
         ...(data.isEnabled !== undefined && { isEnabled: data.isEnabled }),
       },
