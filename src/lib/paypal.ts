@@ -1,8 +1,8 @@
-import { payPalClient, Environment } from '@paypal/paypal-server-sdk';
+import { Client, Environment } from '@paypal/paypal-server-sdk';
 
-let client: ReturnType<typeof payPalClient> | null = null;
+let client: Client | null = null;
 
-function getPayPalClient() {
+function getPayPalClient(): Client {
   if (!client) {
     if (!process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_CLIENT_SECRET) {
       throw new Error('PayPal credentials are not defined');
@@ -12,7 +12,7 @@ function getPayPalClient() {
     const environment =
       mode === 'live' ? Environment.Production : Environment.Sandbox;
 
-    client = payPalClient({
+    client = new Client({
       clientCredentialsAuthCredentials: {
         oAuthClientId: process.env.PAYPAL_CLIENT_ID,
         oAuthClientSecret: process.env.PAYPAL_CLIENT_SECRET,
@@ -24,7 +24,7 @@ function getPayPalClient() {
   return client;
 }
 
-export const paypalHttpClient = new Proxy({} as ReturnType<typeof payPalClient>, {
+export const paypalHttpClient = new Proxy({} as Client, {
   get: (_target, prop) => {
     const c = getPayPalClient();
     const value = c[prop as keyof typeof c];
