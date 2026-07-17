@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
-import { paypalHttpClient, PayPalOrders, isPayPalEnabled } from '@/lib/paypal';
+import { paypalHttpClient, isPayPalEnabled } from '@/lib/paypal';
 import { z } from 'zod';
 import { sendWalletDepositEmail } from '@/lib/email/email-service';
 import { logger } from '@/lib/logger';
@@ -45,14 +45,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // Capture PayPal payment
-    const captureRequest = new PayPalOrders.OrdersCaptureRequest(orderId);
-    captureRequest.requestBody({});
-
-    const capture = await paypalHttpClient.execute(captureRequest);
+    // Capture PayPal payment using new SDK
+    const captureResponse = await paypalHttpClient.ordersController.ordersCapture({
+      id: orderId,
+      prefer: 'return=representation',
+    });
 
     // Verify payment was successful
-    if (capture.result.status !== 'COMPLETED') {
+    if (captureResponse.result?.status !== 'COMPLETED') {
       return NextResponse.json(
         { error: { message: 'Payment was not completed' } },
         { status: 400 }
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     }
 
     // Get capture ID for record keeping
-    const captureId = capture.result.purchase_units[0]?.payments?.captures?.[0]?.id;
+    const captureId = captureResponse.result?.purchaseUnits?.[0]?.payments?.captures?.[0]?.id;
 
     // Create transaction and update wallet balance in atomic transaction
     const result = await prisma.$transaction(async (tx) => {

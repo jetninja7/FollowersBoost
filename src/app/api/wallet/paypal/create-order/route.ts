@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/session';
-import { paypalHttpClient, PayPalOrders, isPayPalEnabled } from '@/lib/paypal';
+import { paypalHttpClient, isPayPalEnabled } from '@/lib/paypal';
 import { z } from 'zod';
 
 const createOrderSchema = z.object({
@@ -29,34 +29,33 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create PayPal order
-    const orderRequest = new PayPalOrders.OrdersCreateRequest();
-    orderRequest.prefer('return=representation');
-    orderRequest.requestBody({
-      intent: 'CAPTURE',
-      purchase_units: [
-        {
-          amount: {
-            currency_code: 'USD',
-            value: amount.toFixed(2),
+    // Create PayPal order using new SDK
+    const orderResponse = await paypalHttpClient.ordersController.ordersCreate({
+      body: {
+        intent: 'CAPTURE',
+        purchaseUnits: [
+          {
+            amount: {
+              currencyCode: 'USD',
+              value: amount.toFixed(2),
+            },
+            description: 'FollowersBoost Wallet Deposit',
           },
-          description: 'FollowersBoost Wallet Deposit',
+        ],
+        applicationContext: {
+          brandName: 'FollowersBoost',
+          landingPage: 'NO_PREFERENCE',
+          userAction: 'PAY_NOW',
+          returnUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/wallet`,
+          cancelUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/wallet`,
         },
-      ],
-      application_context: {
-        brand_name: 'FollowersBoost',
-        landing_page: 'NO_PREFERENCE',
-        user_action: 'PAY_NOW',
-        return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/wallet`,
-        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/wallet`,
       },
+      prefer: 'return=representation',
     });
-
-    const order = await paypalHttpClient.execute(orderRequest);
 
     return NextResponse.json({
       data: {
-        orderId: order.result.id,
+        orderId: orderResponse.result?.id,
       },
     });
   } catch (error) {
