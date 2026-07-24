@@ -162,6 +162,12 @@ export function ProviderEditDialog({
                 />
               </div>
 
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg mb-2">
+                <p className="text-sm text-blue-900">
+                  🔒 <strong>Credentials are encrypted</strong> - API keys and secrets are stored securely using AES-256-GCM encryption
+                </p>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit-apiKey">

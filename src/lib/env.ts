@@ -30,6 +30,16 @@ const serverSchema = z.object({
   UPSTASH_REDIS_REST_URL: z.string().url().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
 
+  // Provider Credential Encryption (optional but recommended)
+  PROVIDER_ENCRYPTION_KEY: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/, 'PROVIDER_ENCRYPTION_KEY must be 64 hex characters (32 bytes)')
+    .optional(),
+
+  // Email
+  RESEND_API_KEY: z.string().startsWith('re_').optional(),
+  EMAIL_FROM: z.string().email().optional(),
+
   // System
   NODE_ENV: z.enum(['development', 'production', 'test']),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),

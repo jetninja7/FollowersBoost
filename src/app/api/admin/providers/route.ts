@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { requireAdmin } from '@/lib/auth/require-admin';
 import { providerRegistry } from '@/lib/fulfillment/provider-registry';
+import { encryptCredentials, isEncryptionEnabled } from '@/lib/crypto/encryption';
 import { z } from 'zod';
 
 const createProviderSchema = z.object({
@@ -147,6 +148,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Encrypt credentials if encryption is enabled
+    let credentialsToStore: any = data.credentials || {};
+    if (isEncryptionEnabled() && data.credentials && Object.keys(data.credentials).length > 0) {
+      try {
+        const encryptedCredentials = encryptCredentials(data.credentials);
+        credentialsToStore = { encrypted: encryptedCredentials };
+      } catch (error) {
+        console.error('[PROVIDER_ENCRYPTION]', error);
+        return NextResponse.json(
+          { success: false, error: 'Failed to encrypt credentials' },
+          { status: 500 }
+        );
+      }
+    }
+
     // Create provider
     const provider = await prisma.provider.create({
       data: {
@@ -154,7 +170,7 @@ export async function POST(req: NextRequest) {
         slug: data.slug,
         type: data.type,
         apiUrl: data.apiUrl,
-        credentials: (data.credentials || {}) as any,
+        credentials: credentialsToStore,
         settings: (data.settings || {}) as any,
         priority: data.priority,
         isEnabled: data.isEnabled,

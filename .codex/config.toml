@@ -1,0 +1,25 @@
+[shell_environment_policy]
+inherit = "core"
+
+[shell_environment_policy.set]
+ANTHROPIC_API_KEY = "sk-a31fbf92395d7bd9-8a2f3d-67a617c8"
+ANTHROPIC_BASE_URL = "http://localhost:20128/v1"
+CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1"
+ANTHROPIC_DEFAULT_OPUS_MODEL = "oc/deepseek-v4-flash-free"
+ANTHROPIC_DEFAULT_SONNET_MODEL = "oc/big-pickle"
+ANTHROPIC_DEFAULT_HAIKU_MODEL = "nvidia/stepfun-ai/step-3.7-flash"
+
+[mcp_servers.filesystem]
+command = "npx"
+args = [
+    "-y",
+    "@modelcontextprotocol/server-filesystem",
+    "/Users/balu",
+]
+
+[mcp_servers.playwright]
+command = "npx"
+args = [
+    "-y",
+    "@playwright/mcp@latest",
+]

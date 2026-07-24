@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
 ## Project Overview
 
@@ -25,17 +25,14 @@ npm start                # Start production server
 npm run lint             # Run ESLint
 
 # Database (Prisma)
-npm run db:setup         # One-command setup: create DB, migrate, seed
-npm run db:studio        # Open database GUI at http://localhost:5555
-npm run db:reset         # Reset database (WARNING: deletes all data)
 npx prisma migrate dev   # Create and apply migration
 npx prisma migrate deploy # Apply migrations (production)
 npx prisma db seed       # Seed database with test data
+npx prisma studio        # Open database GUI at http://localhost:5555
 npx prisma generate      # Regenerate Prisma Client after schema changes
 
-# Testing
-npx tsx test-email-preferences.ts   # Test email preferences system
-npx tsx test-provider-encryption.ts # Test provider credential encryption
+# Database utilities
+npx tsx prisma/seed.ts   # Re-run seed script manually
 ```
 
 ## Default Admin Credentials (Development)
@@ -271,13 +268,6 @@ GOOGLE_CLIENT_SECRET
 SENTRY_DSN
 UPSTASH_REDIS_REST_URL      # Rate limiting
 UPSTASH_REDIS_REST_TOKEN
-
-# Email
-RESEND_API_KEY              # Email sending (optional)
-EMAIL_FROM                  # Sender email address
-
-# Security
-PROVIDER_ENCRYPTION_KEY     # Encrypt provider credentials (generate with: openssl rand -hex 32)
 ```
 
 **Validation:** All env vars validated at startup via `src/lib/env.ts` (Zod schemas).
@@ -351,7 +341,7 @@ curl http://localhost:3000/api/health
 **UI testing:** Start dev server and use Playwright (see MCP integration):
 ```bash
 npm run dev
-# Then ask Claude to test features via Playwright MCP
+# Then ask Codex to test features via Playwright MCP
 ```
 
 **Database inspection:**
@@ -405,30 +395,13 @@ npx prisma studio  # Visual database browser
 - ✅ Phase 9: Email Preferences & Unsubscribe (CAN-SPAM & GDPR compliance, preference management, one-click unsubscribe)
 - ✅ Phase 10: Rate Limiting Enforcement (Upstash Redis integration, API protection, abuse prevention)
 
-**Current state:** Production-ready SaaS with automated fulfillment, email notifications, comprehensive analytics, legal-compliant email management, API rate limiting, and encrypted provider credentials. All core features functional and secure.
+**Current state:** Production-ready SaaS with automated fulfillment, email notifications, comprehensive analytics, legal-compliant email management, and API rate limiting. All core features functional.
 
 **Outstanding work:**
-- Database setup for local development (one-time setup: `npm run db:setup`)
+- Provider credential encryption
+- Database migration for email preferences (requires DB connection)
 
-**Phase 9 (Email Preferences) Status:**
-- ✅ All code implemented and verified
-- ✅ EmailPreferences model in schema
-- ✅ Email preference UI at `/settings/email-preferences`
-- ✅ One-click unsubscribe at `/unsubscribe?token=<uuid>`
-- ✅ Email service respects user preferences
-- ✅ CAN-SPAM & GDPR compliant
-- ⏳ Database setup required to test end-to-end (run `npm run db:setup`)
-
-**Provider Credential Encryption Status:**
-- ✅ AES-256-GCM encryption implemented
-- ✅ Automatic encryption on provider create/update
-- ✅ Automatic decryption when loading providers
-- ✅ Admin UI shows encryption notice
-- ✅ Test suite created and documented
-- ✅ Environment variable validation
-- ⏳ Enable in production by setting `PROVIDER_ENCRYPTION_KEY` (run `npx tsx test-provider-encryption.ts`)
-
-**Memory reference:** See `.claude/projects/-Users-balu-FollowersBoost/memory/followersboost-project-state.md` for phase-specific details.
+**Memory reference:** See `.Codex/projects/-Users-balu-FollowersBoost/memory/followersboost-project-state.md` for phase-specific details.
 
 ## Code Style Preferences
 
@@ -447,9 +420,4 @@ npx prisma studio  # Visual database browser
 - **Migrations:** `docs/migration-safety.md`
 - **Backups:** `docs/backup-procedures.md`
 - **Analytics:** `docs/analytics-guide.md`
-- **Database Setup:** `docs/database-setup-guide.md` - First-time database configuration
-- **Security:**
-  - `docs/provider-credential-encryption.md` - Provider API key encryption (AES-256-GCM)
-- **Phase Verification:**
-  - `docs/phase9-email-preferences-verification.md` - Email preferences testing
 - **Phase completion reports:** `docs/phase*.md`

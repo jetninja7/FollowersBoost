@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { requireAdmin } from '@/lib/auth/require-admin';
 import { providerRegistry } from '@/lib/fulfillment/provider-registry';
+import { encryptCredentials, decryptCredentials, isEncryptionEnabled } from '@/lib/crypto/encryption';
 import { z } from 'zod';
 
 const updateProviderSchema = z.object({
@@ -61,6 +62,19 @@ export async function GET(
       }
     }
 
+    // Decrypt credentials if encrypted (for display in admin UI)
+    let credentialsForDisplay = provider.credentials;
+    if (isEncryptionEnabled() && provider.credentials) {
+      try {
+        const creds = provider.credentials as any;
+        if (creds.encrypted) {
+          credentialsForDisplay = { encrypted: true, message: 'Credentials are encrypted' };
+        }
+      } catch (error) {
+        console.error('[CREDENTIALS_DISPLAY]', error);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       provider: {
@@ -71,7 +85,7 @@ export async function GET(
         isEnabled: provider.isEnabled,
         priority: provider.priority,
         apiUrl: provider.apiUrl,
-        credentials: provider.credentials,
+        credentials: credentialsForDisplay,
         settings: provider.settings,
         statistics: {
           totalOrders: provider.totalOrders,
@@ -136,13 +150,32 @@ export async function PUT(
       );
     }
 
+    // Encrypt credentials if provided and encryption is enabled
+    let credentialsToStore: any = undefined;
+    if (data.credentials) {
+      if (isEncryptionEnabled() && Object.keys(data.credentials).length > 0) {
+        try {
+          const encryptedCredentials = encryptCredentials(data.credentials);
+          credentialsToStore = { encrypted: encryptedCredentials };
+        } catch (error) {
+          console.error('[PROVIDER_ENCRYPTION]', error);
+          return NextResponse.json(
+            { success: false, error: 'Failed to encrypt credentials' },
+            { status: 500 }
+          );
+        }
+      } else {
+        credentialsToStore = data.credentials;
+      }
+    }
+
     // Update provider
     const provider = await prisma.provider.update({
       where: { id },
       data: {
         ...(data.name && { name: data.name }),
         ...(data.apiUrl !== undefined && { apiUrl: data.apiUrl }),
-        ...(data.credentials && { credentials: data.credentials as any }),
+        ...(credentialsToStore !== undefined && { credentials: credentialsToStore as any }),
         ...(data.settings && { settings: data.settings as any }),
         ...(data.priority !== undefined && { priority: data.priority }),
         ...(data.isEnabled !== undefined && { isEnabled: data.isEnabled }),

@@ -9,6 +9,7 @@ import { prisma } from '@/lib/db/prisma';
 import { IFulfillmentProvider, ProviderConfig } from './types';
 import { SMMPanelProvider } from './providers/smm-panel-provider';
 import { MockProvider } from './providers/mock-provider';
+import { decryptCredentials, isEncryptionEnabled } from '@/lib/crypto/encryption';
 import { logger } from '@/lib/logger';
 
 type ProviderClass = new () => IFulfillmentProvider;
@@ -90,6 +91,26 @@ class ProviderRegistry {
       return;
     }
 
+    // Decrypt credentials if encrypted
+    let decryptedCredentials: Record<string, unknown> = {};
+    if (dbProvider.credentials) {
+      const creds = dbProvider.credentials as any;
+      if (isEncryptionEnabled() && creds.encrypted) {
+        try {
+          decryptedCredentials = decryptCredentials(creds.encrypted);
+          logger.info({ providerId: dbProvider.id }, 'Decrypted provider credentials');
+        } catch (error) {
+          logger.error(
+            { providerId: dbProvider.id, error },
+            'Failed to decrypt provider credentials'
+          );
+          throw new Error('Failed to decrypt provider credentials');
+        }
+      } else {
+        decryptedCredentials = creds;
+      }
+    }
+
     const config: ProviderConfig = {
       id: dbProvider.id,
       name: dbProvider.name,
@@ -97,7 +118,7 @@ class ProviderRegistry {
       isEnabled: dbProvider.isEnabled,
       credentials: {
         apiUrl: dbProvider.apiUrl || undefined,
-        ...(dbProvider.credentials as Record<string, unknown>),
+        ...decryptedCredentials,
       },
       settings: (dbProvider.settings as Record<string, unknown>) || {},
     };
